@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: smartfarm_server
+  data:
+    redis:
+      host: localhost
+      port: 6380
+
+
+server:
+  port: 8080
