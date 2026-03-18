@@ -38,3 +38,4 @@ while True:
         print(f"[{time.strftime('%H:%M:%S')}] 전송 실패: {e}")
 
 time.sleep(3) # 3초 간격
+
