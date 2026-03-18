@@ -1,6 +1,7 @@
 package com.smartfarm.server.service;
 
 import com.smartfarm.server.dto.SensorRequestDto;
+import com.smartfarm.server.dto.SensorResponseDto;
 import com.smartfarm.server.entity.SensorData;
 import com.smartfarm.server.repository.SensorRedisRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,15 +15,31 @@ public class SensorService {
 
     private final SensorRedisRepository sensorRepository;
 
-    public void processSensorData(SensorRequestDto requestDto) {
+    // 임계치 설정 (추후 DB나 설정 파일로 빼는 것이 좋습니다)
+    private static final double TEMPERATURE_THRESHOLD_HIGH = 70.0; // 70도 이상이면 쿨링팬 가동
+
+    public SensorResponseDto processSensorData(SensorRequestDto requestDto) {
         log.info("수신된 센서 데이터 확인: {}", requestDto);
 
-        // DTO 내부의 변환 로직(toEntity)을 호출하여 Entity로 변환합니다.
-        // 서비스 계층은 데이터 저장(비즈니스 로직)에만 집중할 수 있게 되어 코드가 간결해집니다.
+        // 1. DTO -> Entity 변환 및 Redis 저장
         SensorData sensorData = requestDto.toEntity();
-
-        // Spring Data Redis(JPA 스타일)를 이용한 데이터 저장
         sensorRepository.save(sensorData);
         log.info("Redis에 센서 데이터 저장 완료: {}", sensorData.getDeviceId());
+
+        // 2. 비즈니스 로직 (역제어 명령 판단)
+        boolean needCooling = sensorData.getTemperature() >= TEMPERATURE_THRESHOLD_HIGH;
+
+        if (needCooling) {
+            log.warn("🚨 {} 온도 경고! 쿨링팬 가동 명령 발행! (현재 온도: {}도)", 
+                     sensorData.getDeviceId(), sensorData.getTemperature());
+        }
+
+        // 3. PC로 내려보낼 응답(명령) DTO 생성 및 반환
+        return SensorResponseDto.builder()
+                .status("SUCCESS")
+                .message("Data processed successfully")
+                .coolingFanOn(needCooling) // 온도가 높으면 true로 설정
+                .heaterOn(false)           // 지금은 안 씀
+                .build();
     }
 }

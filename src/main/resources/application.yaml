@@ -6,6 +6,25 @@ spring:
       host: localhost
       port: 6380
 
+  # MySQL 데이터베이스 설정
+  datasource:
+    # createDatabaseIfNotExist=true 옵션을 추가하여 서버 시작 시 데이터베이스가 없으면 자동으로 생성하도록 합니다.
+    url: jdbc:mysql://localhost:3306/smartfarm?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&rewriteBatchedStatements=true
+    username: root
+    password: ${MYSQL_PASSWORD} # 환경변수에서 비밀번호를 주입받습니다.
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # JPA (Hibernate) 설정
+  jpa:
+    hibernate:
+      ddl-auto: update # 엔티티 클래스에 맞게 테이블을 자동 생성/수정합니다 (개발용).
+    show-sql: true     # 실행되는 SQL 쿼리를 콘솔에 출력합니다.
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 500       # 500개의 데이터를 메모리에 모았다가 한 번의 쿼리로 DB에 전송합니다. (1분 주기 데이터량에 맞게 조절 가능)
+        order_inserts: true     # 같은 엔티티(SensorHistory) 타입의 INSERT 문을 순서대로 정렬하여 묶음(Batch) 처리를 최적화합니다.
 
 server:
   port: 8080
