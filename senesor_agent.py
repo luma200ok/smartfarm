@@ -25,16 +25,16 @@ def get_pc_status():
 
 print(f"--- 스마트팜 센서 에이전트 시작 (Target: {SERVER_URL}) ---")
 while True:
-        try:
-            data = get_pc_status()
-            # 데이터를 맥북 서버로 전송
-            response = requests.post(SERVER_URL, json=data, timeout=5)
+    try:
+        data = get_pc_status()
+        # 데이터를 맥북 서버로 전송
+        response = requests.post(SERVER_URL, json=data, timeout=5)
 
-            # 수정됨: data['temperature'] -> data['cpu_temperature']
-            print(f"[{time.strftime('%H:%M:%S')}] 전송 성공! (CPU: {data['cpu_temperature']}% , MEM: {data['mem_usage']}%)")
+        # 수정됨: data['temperature'] -> data['cpu_temperature']
+        print(f"[{time.strftime('%H:%M:%S')}] 전송 성공! (CPU: {data['cpu_temperature']}%, MEM: {data['mem_usage']}%)")
 
-        except Exception as e:
-            # 수정됨: 실제 발생한 에러 원인(e)을 함께 출력하도록 변경
-            print(f"[{time.strftime('%H:%M:%S')}] 전송 실패: {e}")
+    except Exception as e:
+        # 수정됨: 실제 발생한 에러 원인(e)을 함께 출력하도록 변경
+        print(f"[{time.strftime('%H:%M:%S')}] 전송 실패: {e}")
 
-    time.sleep(3) # 3초 간격
+time.sleep(3) # 3초 간격
