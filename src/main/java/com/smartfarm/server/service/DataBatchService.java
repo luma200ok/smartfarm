@@ -8,9 +8,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Slf4j
 @Service
@@ -22,41 +27,72 @@ public class DataBatchService {
 
     /**
      * @Scheduled를 사용한 주기적 작업
-     * 1분마다(60,000ms) 실행되며, Redis에 캐싱된 현재 최신 데이터를 MySQL로 이관합니다.
+     * application.yaml의 smartfarm.batch.interval-ms 값을 주기로 사용합니다. (기본 60,000ms = 1분)
      */
-    @Scheduled(fixedRate = 60000) 
+    @Transactional // MySQL 저장 중 에러가 발생하면 롤백하고, Redis 데이터 삭제를 방지합니다.
+    @Scheduled(fixedDelayString = "${smartfarm.batch.interval-ms}") 
     public void migrateDataFromRedisToMySql() {
-        log.info("[BATCH TASK] 1분 주기 데이터 이관 배치 시작 - Redis -> MySQL");
+        log.info("[BATCH TASK] 주기적 데이터 평균 집계 및 이관 시작 - Redis -> MySQL");
         
-        // 1. Redis에 저장된 모든 센서 데이터를 가져옵니다.
-        Iterable<SensorData> redisDataList = redisRepository.findAll();
-        
-        List<SensorHistory> historyList = new ArrayList<>();
-        
-        for (SensorData redisData : redisDataList) {
-            // 방어 로직: Redis에서 만료(TTL) 과정 중이거나 비정상적인 null 데이터가 섞여 들어올 수 있으므로 체크합니다.
-            if (redisData == null || redisData.getDeviceId() == null) {
-                continue; 
+        try {
+            // 1. Redis에 저장된 모든 센서 데이터를 가져옵니다.
+            Iterable<SensorData> redisDataList = redisRepository.findAll();
+            
+            // Iterable을 List로 변환 (null이거나 deviceId가 없는 비정상 데이터 필터링)
+            List<SensorData> validDataList = StreamSupport.stream(redisDataList.spliterator(), false)
+                    .filter(data -> data != null && data.getDeviceId() != null)
+                    .collect(Collectors.toList());
+
+            if (validDataList.isEmpty()) {
+                log.info("[BATCH TASK] 집계할 센서 데이터가 없습니다.");
+                return;
             }
 
-            // 2. Redis 데이터를 MySQL 전용 Entity(SensorHistory)로 변환
-            SensorHistory history = SensorHistory.builder()
-                    .deviceId(redisData.getDeviceId())
-                    .temperature(redisData.getTemperature())
-                    .humidity(redisData.getHumidity())
-                    .timestamp(redisData.getTimestamp())
-                    .build();
-            historyList.add(history);
-        }
+            // 2. 디바이스 ID를 기준으로 그룹화 (Grouping)
+            Map<String, List<SensorData>> groupedByDevice = validDataList.stream()
+                    .collect(Collectors.groupingBy(SensorData::getDeviceId));
 
-        // 3. MySQL에 일괄 저장 (Batch Insert)
-        if (!historyList.isEmpty()) {
-            mysqlRepository.saveAll(historyList);
-            log.info("[BATCH TASK] 총 {}개의 센서 데이터를 MySQL에 저장했습니다.", historyList.size());
-        } else {
-            log.info("[BATCH TASK] 이관할 센서 데이터가 없습니다.");
+            List<SensorHistory> historyListToSave = new ArrayList<>();
+
+            // 3. 각 디바이스별로 평균값(온도, 습도)을 계산하여 하나의 History 엔티티로 만듭니다.
+            for (Map.Entry<String, List<SensorData>> entry : groupedByDevice.entrySet()) {
+                String deviceId = entry.getKey();
+                List<SensorData> deviceDataList = entry.getValue();
+
+                double avgTemperature = deviceDataList.stream()
+                        .mapToDouble(SensorData::getTemperature)
+                        .average()
+                        .orElse(0.0);
+
+                double avgHumidity = deviceDataList.stream()
+                        .mapToDouble(SensorData::getHumidity)
+                        .average()
+                        .orElse(0.0);
+
+                // 현재 집계가 끝난 시점의 시간을 기록합니다.
+                LocalDateTime now = LocalDateTime.now();
+
+                // 집계된 '평균값'을 가진 1개의 행(Row) 생성
+                SensorHistory averageHistory = SensorHistory.builder()
+                        .deviceId(deviceId)
+                        .temperature(Math.round(avgTemperature * 10.0) / 10.0) // 소수점 첫째 자리까지만 남김
+                        .humidity(Math.round(avgHumidity * 10.0) / 10.0)
+                        .timestamp(now)
+                        .build();
+
+                historyListToSave.add(averageHistory);
+            }
+
+            // 4. MySQL에 집계된 평균 데이터를 저장 (디바이스당 1건씩만 Insert 됨)
+            mysqlRepository.saveAll(historyListToSave);
+            log.info("[BATCH TASK] {}개 디바이스의 평균 데이터를 MySQL에 저장했습니다.", historyListToSave.size());
+
+            // 5. 이관 및 집계가 끝난 원본 데이터는 Redis에서 삭제 (메모리 확보)
+            redisRepository.deleteAll(validDataList);
+            log.info("[BATCH TASK] 집계 완료된 {}개의 원본 데이터를 Redis에서 삭제했습니다.", validDataList.size());
+            
+        } catch (Exception e) {
+            log.error("[BATCH TASK] 데이터 집계/이관 중 오류 발생: {}", e.getMessage(), e);
         }
-        
-        log.info("[BATCH TASK] 배치 작업 완료.");
     }
 }

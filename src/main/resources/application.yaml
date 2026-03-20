@@ -1,30 +1,21 @@
+# 공통(Default) 설정 파일
 spring:
   application:
     name: smartfarm_server
-  data:
-    redis:
-      host: localhost
-      port: 6380
+  
+  # 기본으로 활성화할 프로파일 (local 환경을 기본으로 띄웁니다)
+  profiles:
+    active: local
 
-  # MySQL 데이터베이스 설정
-  datasource:
-    # createDatabaseIfNotExist=true 옵션을 추가하여 서버 시작 시 데이터베이스가 없으면 자동으로 생성하도록 합니다.
-    url: jdbc:mysql://localhost:3306/smartfarm?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&rewriteBatchedStatements=true
-    username: root
-    password: ${MYSQL_PASSWORD} # 환경변수에서 비밀번호를 주입받습니다.
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
-  # JPA (Hibernate) 설정
-  jpa:
-    hibernate:
-      ddl-auto: update # 엔티티 클래스에 맞게 테이블을 자동 생성/수정합니다 (개발용).
-    show-sql: true     # 실행되는 SQL 쿼리를 콘솔에 출력합니다.
-    properties:
-      hibernate:
-        format_sql: true
-        jdbc:
-          batch_size: 500       # 500개의 데이터를 메모리에 모았다가 한 번의 쿼리로 DB에 전송합니다. (1분 주기 데이터량에 맞게 조절 가능)
-        order_inserts: true     # 같은 엔티티(SensorHistory) 타입의 INSERT 문을 순서대로 정렬하여 묶음(Batch) 처리를 최적화합니다.
-
-server:
-  port: 8080
+# ---------------------------------------------------------
+# 커스텀 설정 (Custom Properties)
+# 앱 내에서 사용할 하드코딩된 숫자들을 설정 파일로 뺐습니다.
+# ---------------------------------------------------------
+smartfarm:
+  sensor:
+    # DB에 설정값이 없을 때 사용할 기본 온도/습도 임계치
+    default-temp-threshold: 60.0
+    default-humidity-threshold: 80.0
+  batch:
+    # 1분(60000ms) 단위 스케줄링 간격
+    interval-ms: 60000

@@ -2,11 +2,12 @@ package com.smartfarm.server;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-// MySQL 설정이 추가되었으므로 DB 자동 구성을 막던 exclude를 제거합니다.
 @SpringBootApplication
 @EnableScheduling
+@EnableCaching // 성능 최적화를 위해 캐싱 기능을 활성화합니다.
 public class ServerApplication {
 
     public static void main(String[] args) {
