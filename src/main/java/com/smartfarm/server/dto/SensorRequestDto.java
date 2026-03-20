@@ -2,8 +2,6 @@ package com.smartfarm.server.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.smartfarm.server.entity.SensorData;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,15 +23,14 @@ public class SensorRequestDto {
     private String deviceId;
     
     // JSON의 스네이크 케이스("cpu_temperature")를 카멜 케이스 필드명에 매핑합니다.
+    // 참고: DTO 필드의 @Min, @Max 어노테이션은 컴파일 시점에 상수(고정값)만 허용하므로
+    // application.yaml의 값을 @Value로 동적으로 주입받아 사용할 수 없습니다.
+    // 대신 Service 계층에서 커스텀 검증 로직을 통해 yaml 설정값으로 유효성 검사를 수행하도록 변경합니다.
     @JsonProperty("cpu_temperature")
-    @Min(value = -50, message = "온도는 -50도 미만일 수 없습니다.") // 실제 온도로 가정하므로 범위를 변경합니다.
-    @Max(value = 150, message = "온도는 150도를 초과할 수 없습니다.")
     private double cpuTemperature;
     
     // JSON의 스네이크 케이스("mem_usage")를 카멜 케이스 필드명에 매핑합니다.
     @JsonProperty("mem_usage")
-    @Min(value = 0, message = "습도(메모리 사용률)는 0% 미만일 수 없습니다.")
-    @Max(value = 100, message = "습도(메모리 사용률)는 100%를 초과할 수 없습니다.")
     private double memUsage;
     
     private long timestamp;

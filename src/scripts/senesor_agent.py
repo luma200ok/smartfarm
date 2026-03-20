@@ -14,31 +14,25 @@ def get_pc_status():
     윈도우 시스템의 실제 상태를 가져옵니다.
     """
     # 1. CPU 사용률 대신 '실제 온도(Temperature)'를 가져옵니다.
-    # psutil.sensors_temperatures()는 윈도우 환경(메인보드/하드웨어)에 따라 지원하지 않을 수 있습니다.
     cpu_temp = 0.0
     if hasattr(psutil, "sensors_temperatures"):
         temps = psutil.sensors_temperatures()
-        # 보통 'coretemp' 나 'k10temp' 등으로 저장됩니다. 가장 첫 번째 값을 가져옵니다.
         if temps:
             for name, entries in temps.items():
                 if entries:
                     cpu_temp = entries[0].current # 현재 온도 추출
                     break
 
-    # 2. 만약 psutil로 온도를 읽어오지 못했다면(윈도우에서 흔함), WMI 등을 써야하지만
-    # 포트폴리오 목적상 CPU 사용률에 비례하여 온도가 올라가는 '가짜 가중치 수식'을 적용하여 실제처럼 보이게 만듭니다.
+    # 2. 만약 psutil로 온도를 읽어오지 못했다면 가짜 수식 적용
     if cpu_temp == 0.0:
-        # CPU 사용률 (0~100%)
         cpu_usage = psutil.cpu_percent(interval=1)
-        # 기본 온도 40도 + (CPU 사용률 * 0.5) => 사용률 100%일 때 최대 90도
         cpu_temp = 40.0 + (cpu_usage * 0.5)
 
-    # 메모리 사용률 (습도로 가정)
     mem_usage = psutil.virtual_memory().percent
 
     return {
         "deviceId": "WINDOWS_PC_SUB",
-        "cpu_temperature": round(cpu_temp, 1), # 소수점 1자리까지만 (예: 56.5)
+        "cpu_temperature": round(cpu_temp, 1),
         "mem_usage": mem_usage,
         "timestamp": int(time.time() * 1000)
     }
@@ -51,21 +45,25 @@ while True:
         # 데이터를 맥북 서버로 전송
         response = requests.post(SERVER_URL, json=data, timeout=5)
 
-        # 1. 서버의 유효성 검사 실패(400 Bad Request) 등 HTTP 에러 처리
-        if response.status_code == 400:
-            error_msg = response.json()
-            print(f"[{time.strftime('%H:%M:%S')}] ❌ 데이터 유효성 검사 실패 (서버 거부): {error_msg}")
+        # HTTP 상태 코드가 200번대(성공)가 아니면 직접 예외를 발생시키지 않고 분기 처리합니다.
+        if response.status_code != 200:
+            # 방금 만든 ErrorResponse 형식의 JSON을 파싱해서 출력합니다.
+            try:
+                error_msg = response.json()
+                print(f"[{time.strftime('%H:%M:%S')}] ❌ 서버 에러 거부 ({response.status_code}): {error_msg.get('message')}")
+                if 'details' in error_msg and error_msg['details']:
+                    print(f"    └─ 상세 이유: {error_msg['details']}")
+            except ValueError:
+                # 서버가 JSON이 아닌 단순 텍스트나 html을 뱉은 경우 (예: 404 Not Found)
+                print(f"[{time.strftime('%H:%M:%S')}] ❌ 서버 통신 에러 ({response.status_code}): {response.text}")
             time.sleep(3)
             continue
 
-        response.raise_for_status() # 200번대 응답이 아니면 예외 발생
-
-        # 2. 서버 응답(제어 명령) 파싱
+        # 200 성공 시에만 아래 로직을 탑니다.
         server_response = response.json()
-        print(f"[{time.strftime('%H:%M:%S')}] ✅ 데이터 전송 성공 (cpu_temperature: {data['cpu_temperature']}도, mem_usage: {data['mem_usage']}%)")
+        print(f"[{time.strftime('%H:%M:%S')}] ✅ 데이터 전송 성공 (온도: {data['cpu_temperature']}도, 습도: {data['mem_usage']}%)")
         print(f"  └─ 서버 응답 상태: {server_response.get('status')} - {server_response.get('message')}")
 
-        # 3. 역제어 명령 수행 (팬 제어 시뮬레이션)
         if server_response.get("coolingFanOn"):
             print("  🚨🚨 [제어 명령 수신] 온도가 높아 쿨링팬 가동을 시작합니다!!! 🚨🚨")
 
@@ -73,8 +71,8 @@ while True:
             print("  🔥 [제어 명령 수신] 히터 가동을 시작합니다!")
 
     except requests.exceptions.RequestException as e:
-        print(f"[{time.strftime('%H:%M:%S')}] ❌ 네트워크 전송 실패: {e}")
+        print(f"[{time.strftime('%H:%M:%S')}] ❌ 네트워크 전송 실패 (서버 꺼짐 등): {e}")
     except Exception as e:
-        print(f"[{time.strftime('%H:%M:%S')}] ❌ 알 수 없는 에러 발생: {e}")
+        print(f"[{time.strftime('%H:%M:%S')}] ❌ 파이썬 스크립트 내부 에러 발생: {e}")
 
     time.sleep(3) # 3초 간격

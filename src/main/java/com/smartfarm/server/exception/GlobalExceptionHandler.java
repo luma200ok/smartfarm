@@ -1,38 +1,74 @@
 package com.smartfarm.server.exception;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 전역 예외 처리기 (3번 작업)
- * 서버에서 발생하는 모든 에러를 가로채서 일관된 형식의 JSON으로 내려보냅니다.
+ * 전역 예외 처리기 고도화
+ * 모든 예외를 일관된 ErrorResponse 객체로 래핑하여 프론트엔드에 반환합니다.
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     /**
-     * @Valid 검증 실패 시 발생하는 MethodArgumentNotValidException 처리
+     * 1. 비즈니스 로직 처리 중 발생한 커스텀 예외 처리
+     */
+    @ExceptionHandler(CustomException.class)
+    protected ResponseEntity<ErrorResponse> handleCustomException(CustomException e) {
+        log.error("CustomException: {}", e.getMessage());
+        ErrorCode errorCode = e.getErrorCode();
+        ErrorResponse response = ErrorResponse.of(errorCode, e.getMessage());
+        return new ResponseEntity<>(response, errorCode.getStatus());
+    }
+
+    /**
+     * 2. DTO @Valid 유효성 검사 실패 시 발생하는 예외 처리
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        log.error("유효성 검사 실패 예외 발생");
-        Map<String, String> errors = new HashMap<>();
+    protected ResponseEntity<ErrorResponse> handleValidationExceptions(
+            MethodArgumentNotValidException e) {
+        log.error("MethodArgumentNotValidException: {}", e.getMessage());
         
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
+        // 발생한 에러들을 Map(필드명 : 에러 메시지) 형태로 정리
+        Map<String, String> errors = new HashMap<>();
+        e.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
         
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, errors);
+        return new ResponseEntity<>(response, ErrorCode.INVALID_INPUT_VALUE.getStatus());
+    }
+
+    /**
+     * 3. API 파라미터 타입이 맞지 않을 때 발생하는 예외 처리 (예: /api?deviceId=1 에 String 대신 객체가 올 때)
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    protected ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException e) {
+        log.error("MethodArgumentTypeMismatchException: {}", e.getMessage());
+        ErrorResponse response = ErrorResponse.of(
+                ErrorCode.INVALID_INPUT_VALUE, "파라미터 타입이 일치하지 않습니다.");
+        return new ResponseEntity<>(response, ErrorCode.INVALID_INPUT_VALUE.getStatus());
+    }
+
+    /**
+     * 4. 위에서 잡히지 않은 모든 알 수 없는 에러 처리 (최후의 보루)
+     */
+    @ExceptionHandler(Exception.class)
+    protected ResponseEntity<ErrorResponse> handleException(Exception e) {
+        log.error("Unhandled Exception: {}", e.getMessage(), e);
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INTERNAL_SERVER_ERROR, e.getMessage());
+        return new ResponseEntity<>(response, ErrorCode.INTERNAL_SERVER_ERROR.getStatus());
     }
 }

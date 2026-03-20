@@ -29,7 +29,7 @@ public class DeviceConfigService {
         
         return deviceConfigRepository.findByDeviceId(deviceId)
                 .orElseGet(() -> {
-                    log.info(">>> 등록된 기기 설정이 없어 기본 설정값을 반환합니다. (하지만 DB에 자동 저장하지는 않습니다)");
+                    log.info(">>> 등록된 기기 설정이 없어 기본 설정값을 반환합니다. (온도: {}, 습도: {})", defaultTempThreshold, defaultHumidityThreshold);
                     return DeviceConfig.builder()
                             .deviceId(deviceId)
                             .temperatureThresholdHigh(defaultTempThreshold)
