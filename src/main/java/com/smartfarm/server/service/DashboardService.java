@@ -1,12 +1,16 @@
 package com.smartfarm.server.service;
 
 import com.smartfarm.server.dto.SensorHistoryResponseDto;
+import com.smartfarm.server.dto.SensorStatisticsDto;
 import com.smartfarm.server.repository.SensorHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -19,9 +23,20 @@ public class DashboardService {
      * 특정 기기의 최근 이력 데이터를 페이징하여 조회합니다.
      */
     public Page<SensorHistoryResponseDto> getSensorHistory(String deviceId, Pageable pageable) {
-        // JPA Repository에서 데이터를 Page 객체로 가져온 후, 
-        // 외부 노출 방지를 위해 Entity(SensorHistory)를 DTO(SensorHistoryResponseDto)로 변환(map)합니다.
         return historyRepository.findByDeviceIdOrderByTimestampDesc(deviceId, pageable)
                 .map(SensorHistoryResponseDto::from);
+    }
+
+    /**
+     * 특정 기기의 오늘 하루 통계(최고, 최저, 평균)를 조회합니다. (Querydsl 사용)
+     */
+    public SensorStatisticsDto getTodayStatistics(String deviceId) {
+        // 오늘 자정 (00:00:00)
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        // 오늘 밤 (23:59:59.999999999)
+        LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59, 999999999);
+
+        // Querydsl로 구현한 커스텀 메서드 호출
+        return historyRepository.getSensorStatistics(deviceId, startOfDay, endOfDay);
     }
 }

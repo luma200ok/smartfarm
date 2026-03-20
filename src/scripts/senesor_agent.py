@@ -37,7 +37,7 @@ def get_pc_status():
     mem_usage = psutil.virtual_memory().percent
 
     return {
-        "deviceId": "WINDOWS_PC_01",
+        "deviceId": "WINDOWS_PC_SUB",
         "cpu_temperature": round(cpu_temp, 1), # 소수점 1자리까지만 (예: 56.5)
         "mem_usage": mem_usage,
         "timestamp": int(time.time() * 1000)
@@ -62,7 +62,7 @@ while True:
 
         # 2. 서버 응답(제어 명령) 파싱
         server_response = response.json()
-        print(f"[{time.strftime('%H:%M:%S')}] ✅ 데이터 전송 성공 (온도: {data['cpu_temperature']}도, 습도: {data['mem_usage']}%)")
+        print(f"[{time.strftime('%H:%M:%S')}] ✅ 데이터 전송 성공 (cpu_temperature: {data['cpu_temperature']}도, mem_usage: {data['mem_usage']}%)")
         print(f"  └─ 서버 응답 상태: {server_response.get('status')} - {server_response.get('message')}")
 
         # 3. 역제어 명령 수행 (팬 제어 시뮬레이션)

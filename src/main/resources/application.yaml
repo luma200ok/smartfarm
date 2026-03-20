@@ -14,7 +14,7 @@ spring:
 smartfarm:
   sensor:
     # DB에 설정값이 없을 때 사용할 기본 온도/습도 임계치
-    default-temp-threshold: 60.0
+    default-temp-threshold: 70.0
     default-humidity-threshold: 80.0
   batch:
     # 1분(60000ms) 단위 스케줄링 간격
