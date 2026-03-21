@@ -108,4 +108,17 @@ public class DataBatchService {
         mysqlRepository.deleteByTimestampBefore(cutoff);
         log.info("[BATCH TASK] 1개월 이상 지난 SensorHistory 데이터 삭제 완료");
     }
+
+    /**
+     * 매일 새벽 3시에 소프트 딜리트된 지 1주일 이상 지난 SensorHistory 데이터를 하드 딜리트합니다.
+     * 기기 삭제 후 1주일간 데이터를 보존하는 정책 처리
+     */
+    @Transactional
+    @Scheduled(cron = "0 0 3 * * *")
+    public void hardDeleteSoftDeletedHistory() {
+        LocalDateTime cutoff = LocalDateTime.now().minusWeeks(1);
+        log.info("[BATCH TASK] 소프트 딜리트 데이터 정리 실행 - {} 이전 소프트 딜리트 데이터 하드 딜리트 시작", cutoff);
+        mysqlRepository.deleteByDeletedAtBefore(cutoff);
+        log.info("[BATCH TASK] 소프트 딜리트된 지 1주일 이상 지난 SensorHistory 데이터 하드 딜리트 완료");
+    }
 }

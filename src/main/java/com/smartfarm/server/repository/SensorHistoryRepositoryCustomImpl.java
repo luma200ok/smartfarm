@@ -33,9 +33,10 @@ public class SensorHistoryRepositoryCustomImpl implements SensorHistoryRepositor
                 ))
                 .from(sensorHistory)
                 .where(
-                        // WHERE device_id = ? AND timestamp BETWEEN ? AND ?
+                        // WHERE device_id = ? AND timestamp BETWEEN ? AND ? AND deleted_at IS NULL
                         sensorHistory.deviceId.eq(deviceId),
-                        sensorHistory.timestamp.between(start, end)
+                        sensorHistory.timestamp.between(start, end),
+                        sensorHistory.deletedAt.isNull()
                 )
                 .groupBy(sensorHistory.deviceId) // 디바이스별로 묶어서 통계를 냅니다.
                 .fetchOne(); // 결과가 1건(또는 null)이므로 fetchOne()을 사용합니다.

@@ -6,6 +6,7 @@ import com.smartfarm.server.entity.DeviceConfig;
 import com.smartfarm.server.exception.CustomException;
 import com.smartfarm.server.exception.ErrorCode;
 import com.smartfarm.server.repository.DeviceConfigRepository;
+import com.smartfarm.server.repository.SensorHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -22,6 +24,7 @@ import java.util.List;
 public class DeviceConfigService {
 
     private final DeviceConfigRepository deviceConfigRepository;
+    private final SensorHistoryRepository sensorHistoryRepository;
 
     @Value("${smartfarm.sensor.default-temp-threshold}")
     private double defaultTempThreshold;
@@ -85,5 +88,9 @@ public class DeviceConfigService {
                 .orElseThrow(() -> new CustomException(ErrorCode.DEVICE_NOT_FOUND));
         log.info(">>> 기기 설정 삭제 및 캐시 삭제: {}", deviceId);
         deviceConfigRepository.delete(config);
+
+        // 관련 센서 이력 데이터 소프트 딜리트 (1주일 후 하드 딜리트 스케줄러가 처리)
+        sensorHistoryRepository.softDeleteByDeviceId(deviceId, LocalDateTime.now());
+        log.info(">>> {}의 센서 이력 데이터 소프트 딜리트 완료 (1주일 후 자동 삭제)", deviceId);
     }
 }
