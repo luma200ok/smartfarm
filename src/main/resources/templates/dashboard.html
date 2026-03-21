@@ -256,8 +256,7 @@
     <h1>&#9670; Smart-PC Farm Dashboard</h1>
     <div class="header-right">
         <select class="device-selector" id="deviceSelect">
-            <option value="WINDOWS_PC_01">WINDOWS_PC_01</option>
-            <option value="WINDOWS_PC_02">WINDOWS_PC_02</option>
+            <option value="">기기 로딩 중...</option>
         </select>
         <div class="status-badge">
             <div class="status-dot"></div>
@@ -329,7 +328,7 @@
 
 <script>
     // ─── 상태 관리 ───────────────────────────────────────────────
-    let currentDeviceId = 'WINDOWS_PC_01';
+    let currentDeviceId = '';
     let temperatureChart = null;
     let humidityChart = null;
     const MAX_DATA_POINTS = 20;
@@ -513,14 +512,43 @@
         refreshAll();
     });
 
+    // ─── 기기 목록 동적 로드 ─────────────────────────────────────
+    async function loadDevices() {
+        const select = document.getElementById('deviceSelect');
+        try {
+            const res = await fetch('/dashboard/devices');
+            if (!res.ok) throw new Error('기기 목록 조회 실패');
+            const devices = await res.json();
+
+            select.innerHTML = '';
+            if (devices.length === 0) {
+                select.innerHTML = '<option value="">등록된 기기 없음</option>';
+                return;
+            }
+            devices.forEach(id => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = id;
+                select.appendChild(opt);
+            });
+            currentDeviceId = devices[0];
+            select.value = currentDeviceId;
+        } catch (e) {
+            console.error('기기 목록 로드 실패:', e);
+            select.innerHTML = '<option value="">로드 실패</option>';
+        }
+    }
+
     // ─── 초기화 ──────────────────────────────────────────────────
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         temperatureChart = createChart('temperatureChart', '온도 (°C)', '#f87171');
         humidityChart = createChart('humidityChart', '습도 (%)', '#34d399');
-        refreshAll();
+
+        await loadDevices();
+        if (currentDeviceId) refreshAll();
 
         // 60초마다 자동 갱신
-        setInterval(refreshAll, 60000);
+        setInterval(() => { if (currentDeviceId) refreshAll(); }, 60000);
     });
 </script>
 

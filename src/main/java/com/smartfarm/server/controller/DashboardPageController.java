@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.util.List;
+
 @Controller
 @RequestMapping("/dashboard")
 @RequiredArgsConstructor
@@ -25,6 +27,16 @@ public class DashboardPageController {
     @GetMapping
     public String dashboard() {
         return "dashboard";
+    }
+
+    /**
+     * 실제 데이터를 전송한 기기 ID 목록 조회 (대시보드 셀렉터용)
+     * SensorHistory 기준 - 데이터를 한 번이라도 보낸 PC만 자동으로 등록됨
+     */
+    @GetMapping("/devices")
+    @ResponseBody
+    public ResponseEntity<List<String>> getDeviceIds() {
+        return ResponseEntity.ok(dashboardService.getDeviceIds());
     }
 
     /**

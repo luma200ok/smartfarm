@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +22,13 @@ public class DashboardService {
 
     private final SensorHistoryRepository historyRepository;
     private final ControlEventLogRepository eventLogRepository;
+
+    /**
+     * 실제 데이터를 전송한 기기 ID 목록을 중복 없이 조회합니다. (대시보드 셀렉터용)
+     */
+    public List<String> getDeviceIds() {
+        return historyRepository.findDistinctDeviceIds();
+    }
 
     /**
      * 특정 기기의 최근 이력 데이터를 페이징하여 조회합니다.
