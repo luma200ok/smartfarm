@@ -169,6 +169,28 @@
 
         .btn-cancel:hover { background: #334155; }
 
+        .btn-add {
+            background: #0369a1;
+            border: none;
+            color: #e2e8f0;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .btn-add:hover { background: #0284c7; }
+
+        .btn-danger {
+            background: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .btn-danger:hover { background: #3f1515; }
+
         .status-dot {
             width: 8px;
             height: 8px;
@@ -377,12 +399,41 @@
             <div class="status-dot"></div>
             <span id="lastUpdated">연결 중...</span>
         </div>
+        <button class="header-btn" onclick="openDeviceManagerModal()">&#43; 기기 관리</button>
         <button class="header-btn btn-config" onclick="openConfigModal()">&#9881; 기기 설정</button>
         <form th:action="@{/logout}" method="POST" style="margin:0;">
             <button type="submit" class="header-btn">로그아웃</button>
         </form>
     </div>
 </header>
+
+<!-- 기기 관리 모달 -->
+<div class="modal-overlay" id="deviceManagerModal">
+    <div class="modal-box" style="max-width: 500px;">
+        <h3>&#43; 기기 관리</h3>
+        <div style="margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid #334155;">
+            <div class="modal-field">
+                <label>기기 ID</label>
+                <input type="text" id="newDeviceId" placeholder="예: SENSOR-002">
+            </div>
+            <div class="modal-field">
+                <label>고온 임계값 (°C)</label>
+                <input type="number" id="newTempThreshold" step="0.1" min="0" value="40">
+            </div>
+            <div class="modal-field">
+                <label>고습 임계값 (%)</label>
+                <input type="number" id="newHumidityThreshold" step="0.1" min="0" value="80">
+            </div>
+            <div id="registerMessage" style="font-size:0.8rem; min-height:18px; margin-bottom:10px;"></div>
+            <button class="btn-add" onclick="registerDevice()">등록</button>
+        </div>
+        <div style="font-size:0.8rem; color:#64748b; margin-bottom:10px;">등록된 기기</div>
+        <div id="registeredDeviceList" style="max-height:200px; overflow-y:auto;"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeDeviceManagerModal()">닫기</button>
+        </div>
+    </div>
+</div>
 
 <!-- 기기 설정 모달 -->
 <div class="modal-overlay" id="configModal">
@@ -453,6 +504,23 @@
             <div class="chart-container">
                 <canvas id="humidityChart"></canvas>
             </div>
+        </div>
+    </div>
+
+    <!-- 센서 이력 내보내기 -->
+    <div class="log-card" style="margin-bottom:16px;">
+        <div class="section-header">
+            <h3>&#8595; 센서 이력 내보내기</h3>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <label style="font-size:0.8rem; color:#64748b;">시작</label>
+            <input type="datetime-local" id="exportStart"
+                   style="background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+            <label style="font-size:0.8rem; color:#64748b;">종료</label>
+            <input type="datetime-local" id="exportEnd"
+                   style="background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+            <button class="refresh-btn" onclick="exportData('csv')">CSV 다운로드</button>
+            <button class="refresh-btn" onclick="exportData('excel')">Excel 다운로드</button>
         </div>
     </div>
 
@@ -647,6 +715,105 @@
         await Promise.all([loadHistory(), loadStatistics(), loadEventLogs()]);
         const now = new Date().toLocaleTimeString('ko-KR');
         document.getElementById('lastUpdated').textContent = `마지막 갱신: ${now}`;
+    }
+
+    // ─── 기기 관리 모달 ──────────────────────────────────────────
+    async function openDeviceManagerModal() {
+        document.getElementById('registerMessage').textContent = '';
+        await loadRegisteredDevices();
+        document.getElementById('deviceManagerModal').classList.add('active');
+    }
+
+    function closeDeviceManagerModal() {
+        document.getElementById('deviceManagerModal').classList.remove('active');
+    }
+
+    async function loadRegisteredDevices() {
+        const container = document.getElementById('registeredDeviceList');
+        try {
+            const res = await fetch('/api/device-config');
+            const configs = await res.json();
+            if (configs.length === 0) {
+                container.innerHTML = '<div style="color:#475569; font-size:0.85rem; padding:8px 0;">등록된 기기가 없습니다.</div>';
+                return;
+            }
+            container.innerHTML = configs.map(c => `
+                <div style="display:flex; justify-content:space-between; align-items:center;
+                            padding:8px 0; border-bottom:1px solid #334155;">
+                    <span style="font-size:0.9rem;">${c.deviceId}</span>
+                    <button class="btn-danger" onclick="deleteDevice('${c.deviceId}')">삭제</button>
+                </div>
+            `).join('');
+        } catch (e) {
+            container.innerHTML = '<div style="color:#f87171; font-size:0.85rem;">목록 로드 실패</div>';
+        }
+    }
+
+    async function registerDevice() {
+        const deviceId = document.getElementById('newDeviceId').value.trim();
+        const tempThreshold = parseFloat(document.getElementById('newTempThreshold').value);
+        const humidityThreshold = parseFloat(document.getElementById('newHumidityThreshold').value);
+        const msgEl = document.getElementById('registerMessage');
+
+        if (!deviceId) {
+            msgEl.style.color = '#f87171';
+            msgEl.textContent = '기기 ID를 입력해주세요.';
+            return;
+        }
+        try {
+            const res = await fetch('/api/device-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deviceId, temperatureThresholdHigh: tempThreshold,
+                                       humidityThresholdHigh: humidityThreshold })
+            });
+            if (res.ok) {
+                msgEl.style.color = '#22c55e';
+                msgEl.textContent = '등록되었습니다.';
+                document.getElementById('newDeviceId').value = '';
+                await loadRegisteredDevices();
+                await loadDevices();
+            } else {
+                msgEl.style.color = '#f87171';
+                msgEl.textContent = '등록에 실패했습니다. (이미 존재하는 기기 ID일 수 있습니다.)';
+            }
+        } catch (e) {
+            msgEl.style.color = '#f87171';
+            msgEl.textContent = '오류가 발생했습니다.';
+        }
+    }
+
+    async function deleteDevice(deviceId) {
+        if (!confirm(`'${deviceId}' 기기를 삭제하시겠습니까?\n관련 임계값 설정이 삭제됩니다.`)) return;
+        try {
+            const res = await fetch(`/api/device-config/${encodeURIComponent(deviceId)}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                await loadRegisteredDevices();
+                await loadDevices();
+            } else {
+                alert('삭제에 실패했습니다.');
+            }
+        } catch (e) {
+            alert('오류가 발생했습니다.');
+        }
+    }
+
+    document.getElementById('deviceManagerModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeviceManagerModal();
+    });
+
+    // ─── 데이터 내보내기 ─────────────────────────────────────────
+    function exportData(format) {
+        if (!currentDeviceId) { alert('기기를 먼저 선택해주세요.'); return; }
+        const start = document.getElementById('exportStart').value;
+        const end   = document.getElementById('exportEnd').value;
+        if (!start || !end) { alert('날짜 범위를 입력해주세요.'); return; }
+        const url = `/dashboard/export/${format}?deviceId=${encodeURIComponent(currentDeviceId)}`
+                  + `&start=${encodeURIComponent(start + ':00')}`
+                  + `&end=${encodeURIComponent(end + ':00')}`;
+        window.location.href = url;
     }
 
     // ─── SSE 연결 관리 ───────────────────────────────────────────

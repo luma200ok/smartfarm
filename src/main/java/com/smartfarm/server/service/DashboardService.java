@@ -4,6 +4,7 @@ import com.smartfarm.server.dto.SensorHistoryResponseDto;
 import com.smartfarm.server.dto.SensorStatisticsDto;
 import com.smartfarm.server.entity.ControlEventLog;
 import com.smartfarm.server.repository.ControlEventLogRepository;
+import com.smartfarm.server.repository.DeviceConfigRepository;
 import com.smartfarm.server.repository.SensorHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,12 +23,13 @@ public class DashboardService {
 
     private final SensorHistoryRepository historyRepository;
     private final ControlEventLogRepository eventLogRepository;
+    private final DeviceConfigRepository deviceConfigRepository;
 
     /**
-     * 실제 데이터를 전송한 기기 ID 목록을 중복 없이 조회합니다. (대시보드 셀렉터용)
+     * 등록된 기기 ID 목록을 조회합니다. (대시보드 셀렉터용)
      */
     public List<String> getDeviceIds() {
-        return historyRepository.findDistinctDeviceIds();
+        return deviceConfigRepository.findAllDeviceIds();
     }
 
     /**
