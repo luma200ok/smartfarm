@@ -385,6 +385,11 @@
             main { padding: 16px; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
         }
+
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+        }
     </style>
 </head>
 <body>
