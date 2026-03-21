@@ -2,9 +2,12 @@ package com.smartfarm.server.controller;
 
 import com.smartfarm.server.entity.ControlEventLog;
 import com.smartfarm.server.service.DashboardService;
+import com.smartfarm.server.service.ExportService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Controller
@@ -20,6 +25,7 @@ import java.util.List;
 public class DashboardPageController {
 
     private final DashboardService dashboardService;
+    private final ExportService exportService;
 
     /**
      * 대시보드 메인 페이지 반환
@@ -53,5 +59,23 @@ public class DashboardPageController {
         PageRequest pageRequest = PageRequest.of(page, size);
         Page<ControlEventLog> result = dashboardService.getControlEventLogs(deviceId, pageRequest);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/export/csv")
+    public void exportCsv(
+            @RequestParam String deviceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
+            HttpServletResponse response) throws IOException {
+        exportService.exportCsv(deviceId, start, end, response);
+    }
+
+    @GetMapping("/export/excel")
+    public void exportExcel(
+            @RequestParam String deviceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
+            HttpServletResponse response) throws IOException {
+        exportService.exportExcel(deviceId, start, end, response);
     }
 }

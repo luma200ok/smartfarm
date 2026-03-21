@@ -28,6 +28,10 @@ public interface SensorHistoryRepository extends JpaRepository<SensorHistory, Lo
     @Query("SELECT DISTINCT s.deviceId FROM SensorHistory s ORDER BY s.deviceId ASC")
     List<String> findDistinctDeviceIds();
 
+    // 특정 기간 내 특정 기기 데이터를 시간 오름차순으로 전체 조회 (내보내기용)
+    List<SensorHistory> findByDeviceIdAndTimestampBetweenOrderByTimestampAsc(
+            String deviceId, LocalDateTime start, LocalDateTime end);
+
     // 1개월 이상 지난 데이터 삭제 (데이터 보존 정책)
     void deleteByTimestampBefore(LocalDateTime cutoff);
 }
