@@ -488,19 +488,27 @@
             <div style="display:flex; flex-direction:column; gap:6px;">
                 <label style="font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">시작</label>
                 <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="date" id="exportStartDate"
-                           style="background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+                    <div style="position:relative; display:inline-flex; align-items:center;">
+                        <input type="date" id="exportStartDate"
+                               style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 36px 6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer; min-width:140px;">
+                        <span onclick="document.getElementById('exportStartDate').showPicker()"
+                              style="position:absolute; right:8px; font-size:1rem; cursor:pointer; user-select:none; color:#94a3b8;">&#128197;</span>
+                    </div>
                     <input type="time" id="exportStartTime" value="00:00"
-                           style="background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+                           style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer;">
                 </div>
             </div>
             <div style="display:flex; flex-direction:column; gap:6px;">
                 <label style="font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">종료</label>
                 <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="date" id="exportEndDate"
-                           style="background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+                    <div style="position:relative; display:inline-flex; align-items:center;">
+                        <input type="date" id="exportEndDate"
+                               style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 36px 6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer; min-width:140px;">
+                        <span onclick="document.getElementById('exportEndDate').showPicker()"
+                              style="position:absolute; right:8px; font-size:1rem; cursor:pointer; user-select:none; color:#94a3b8;">&#128197;</span>
+                    </div>
                     <input type="time" id="exportEndTime" value="23:59"
-                           style="background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+                           style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer;">
                 </div>
             </div>
             <div style="display:flex; gap:8px; padding-bottom:1px;">
