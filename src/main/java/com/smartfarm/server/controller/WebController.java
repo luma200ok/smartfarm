@@ -15,9 +15,4 @@ public class WebController {
         return "login"; // templates/login.html 파일과 매핑됩니다.
     }
 
-    // 2. 로그인 성공 후(임시) 대시보드 화면(/dashboard)을 보여줍니다.
-    @GetMapping("/dashboard")
-    public String dashboardPage() {
-        return "dashboard"; // templates/dashboard.html 파일과 매핑됩니다.
-    }
 }
