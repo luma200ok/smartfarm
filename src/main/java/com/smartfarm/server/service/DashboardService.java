@@ -36,7 +36,7 @@ public class DashboardService {
      * 특정 기기의 최근 이력 데이터를 페이징하여 조회합니다.
      */
     public Page<SensorHistoryResponseDto> getSensorHistory(String deviceId, Pageable pageable) {
-        return historyRepository.findByDeviceIdOrderByTimestampDesc(deviceId, pageable)
+        return historyRepository.findByDeviceIdAndDeletedAtIsNullOrderByTimestampDesc(deviceId, pageable)
                 .map(SensorHistoryResponseDto::from);
     }
 

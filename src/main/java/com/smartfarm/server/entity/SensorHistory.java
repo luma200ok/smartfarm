@@ -32,6 +32,9 @@ public class SensorHistory {
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
+    @Column
+    private LocalDateTime deletedAt;
+
     @Builder
     public SensorHistory(String deviceId, double temperature, double humidity, LocalDateTime timestamp) {
         this.deviceId = deviceId;

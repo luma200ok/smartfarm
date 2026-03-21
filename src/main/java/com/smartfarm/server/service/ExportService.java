@@ -24,7 +24,7 @@ public class ExportService {
     public void exportCsv(String deviceId, LocalDateTime start, LocalDateTime end,
                           HttpServletResponse response) throws IOException {
         List<SensorHistory> rows = historyRepository
-                .findByDeviceIdAndTimestampBetweenOrderByTimestampAsc(deviceId, start, end);
+                .findByDeviceIdAndTimestampBetweenAndDeletedAtIsNullOrderByTimestampAsc(deviceId, start, end);
 
         response.setContentType("text/csv; charset=UTF-8");
         response.setHeader("Content-Disposition",
@@ -45,7 +45,7 @@ public class ExportService {
     public void exportExcel(String deviceId, LocalDateTime start, LocalDateTime end,
                             HttpServletResponse response) throws IOException {
         List<SensorHistory> rows = historyRepository
-                .findByDeviceIdAndTimestampBetweenOrderByTimestampAsc(deviceId, start, end);
+                .findByDeviceIdAndTimestampBetweenAndDeletedAtIsNullOrderByTimestampAsc(deviceId, start, end);
 
         response.setContentType(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
