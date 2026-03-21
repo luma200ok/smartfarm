@@ -27,4 +27,7 @@ public interface SensorHistoryRepository extends JpaRepository<SensorHistory, Lo
     // 실제 데이터를 전송한 기기 ID 목록을 중복 없이 조회 (대시보드 셀렉터용)
     @Query("SELECT DISTINCT s.deviceId FROM SensorHistory s ORDER BY s.deviceId ASC")
     List<String> findDistinctDeviceIds();
+
+    // 1개월 이상 지난 데이터 삭제 (데이터 보존 정책)
+    void deleteByTimestampBefore(LocalDateTime cutoff);
 }
