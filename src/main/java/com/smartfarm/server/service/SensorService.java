@@ -2,6 +2,7 @@ package com.smartfarm.server.service;
 
 import com.smartfarm.server.dto.SensorRequestDto;
 import com.smartfarm.server.dto.SensorResponseDto;
+import com.smartfarm.server.dto.SsePayloadDto;
 import com.smartfarm.server.entity.ControlEventLog;
 import com.smartfarm.server.entity.DeviceConfig;
 import com.smartfarm.server.entity.SensorData;
@@ -25,6 +26,7 @@ public class SensorService {
     private final DeviceConfigService deviceConfigService;
     private final ControlEventLogRepository controlEventLogRepository;
     private final DiscordNotificationService discordNotificationService;
+    private final SseEmitterService sseEmitterService;
 
     // application.yaml에서 유효성 검사 기준값을 가져옵니다.
     @Value("${smartfarm.sensor.validation.temp-min}")
@@ -80,7 +82,17 @@ public class SensorService {
             discordNotificationService.sendMessage(discordMsg);
         }
 
-        // 6. 응답 반환
+        // 6. SSE로 실시간 데이터 push
+        sseEmitterService.sendToDevice(sensorData.getDeviceId(), SsePayloadDto.builder()
+                .deviceId(sensorData.getDeviceId())
+                .temperature(sensorData.getTemperature())
+                .humidity(sensorData.getHumidity())
+                .timestamp(sensorData.getTimestamp())
+                .coolingFanOn(needCooling)
+                .heaterOn(needHeater)
+                .build());
+
+        // 7. 응답 반환
         return SensorResponseDto.builder()
                 .status("SUCCESS")
                 .message("Data processed successfully")

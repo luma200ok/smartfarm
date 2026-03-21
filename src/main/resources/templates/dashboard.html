@@ -649,10 +649,59 @@
         document.getElementById('lastUpdated').textContent = `마지막 갱신: ${now}`;
     }
 
+    // ─── SSE 연결 관리 ───────────────────────────────────────────
+    let eventSource = null;
+
+    function connectSSE(deviceId) {
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+        }
+        eventSource = new EventSource(`/api/sse/subscribe?deviceId=${encodeURIComponent(deviceId)}`);
+
+        eventSource.addEventListener('connect', function () {
+            console.log('[SSE] 연결 완료:', deviceId);
+        });
+
+        eventSource.addEventListener('sensor', function (e) {
+            const data = JSON.parse(e.data);
+            pushChartData(data);
+            document.getElementById('lastUpdated').textContent =
+                `마지막 갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
+        });
+
+        eventSource.onerror = function () {
+            console.warn('[SSE] 연결 오류 - 브라우저가 자동 재연결합니다.');
+        };
+    }
+
+    function pushChartData(data) {
+        const label = formatTime(data.timestamp);
+
+        temperatureChart.data.labels.push(label);
+        temperatureChart.data.datasets[0].data.push(parseFloat(data.temperature).toFixed(1));
+        if (temperatureChart.data.labels.length > MAX_DATA_POINTS) {
+            temperatureChart.data.labels.shift();
+            temperatureChart.data.datasets[0].data.shift();
+        }
+        temperatureChart.update();
+
+        humidityChart.data.labels.push(label);
+        humidityChart.data.datasets[0].data.push(parseFloat(data.humidity).toFixed(1));
+        if (humidityChart.data.labels.length > MAX_DATA_POINTS) {
+            humidityChart.data.labels.shift();
+            humidityChart.data.datasets[0].data.shift();
+        }
+        humidityChart.update();
+    }
+
     // ─── 기기 변경 이벤트 ────────────────────────────────────────
     document.getElementById('deviceSelect').addEventListener('change', function () {
         currentDeviceId = this.value;
-        refreshAll();
+        loadHistory();
+        loadStatistics();
+        loadEventLogs();
+        connectSSE(currentDeviceId);
     });
 
     // ─── 기기 목록 동적 로드 ─────────────────────────────────────
@@ -743,10 +792,10 @@
         humidityChart = createChart('humidityChart', '습도 (%)', '#34d399');
 
         await loadDevices();
-        if (currentDeviceId) refreshAll();
-
-        // 60초마다 자동 갱신
-        setInterval(() => { if (currentDeviceId) refreshAll(); }, 60000);
+        if (currentDeviceId) {
+            await Promise.all([loadHistory(), loadStatistics(), loadEventLogs()]);
+            connectSSE(currentDeviceId);
+        }
     });
 </script>
 
