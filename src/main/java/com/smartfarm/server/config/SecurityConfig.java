@@ -4,6 +4,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -11,21 +13,35 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/dashboard",
-                    "/dashboard/**",
-                    "/api/**",
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**"
-                ).permitAll()
+                .requestMatchers("/", "/login", "/api/sensor/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
-            .csrf(csrf -> csrf.disable());
+            .formLogin(form -> form
+                .loginPage("/")
+                .loginProcessingUrl("/login")
+                .defaultSuccessUrl("/dashboard", true)
+                .failureUrl("/?error=true")
+                .usernameParameter("username")
+                .passwordParameter("password")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/")
+                .permitAll()
+            )
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/api/**")
+            );
 
         return http.build();
     }

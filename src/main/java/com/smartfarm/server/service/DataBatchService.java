@@ -95,4 +95,17 @@ public class DataBatchService {
             log.error("[BATCH TASK] 데이터 집계/이관 중 오류 발생: {}", e.getMessage(), e);
         }
     }
+
+    /**
+     * 매일 새벽 2시에 1개월 이상 지난 SensorHistory 데이터를 삭제합니다.
+     * 데이터 보존 정책: 30일 초과 데이터 자동 정리
+     */
+    @Transactional
+    @Scheduled(cron = "0 0 2 * * *")
+    public void deleteOldSensorHistory() {
+        LocalDateTime cutoff = LocalDateTime.now().minusMonths(1);
+        log.info("[BATCH TASK] 데이터 보존 정책 실행 - {}  이전 데이터 삭제 시작", cutoff);
+        mysqlRepository.deleteByTimestampBefore(cutoff);
+        log.info("[BATCH TASK] 1개월 이상 지난 SensorHistory 데이터 삭제 완료");
+    }
 }

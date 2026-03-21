@@ -35,4 +35,9 @@ public class DeviceConfig implements Serializable {
         this.temperatureThresholdHigh = temperatureThresholdHigh;
         this.humidityThresholdHigh = humidityThresholdHigh;
     }
+
+    public void update(double temperatureThresholdHigh, double humidityThresholdHigh) {
+        this.temperatureThresholdHigh = temperatureThresholdHigh;
+        this.humidityThresholdHigh = humidityThresholdHigh;
+    }
 }
