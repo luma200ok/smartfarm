@@ -385,6 +385,11 @@
             main { padding: 16px; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
         }
+
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -484,15 +489,37 @@
         <div class="section-header">
             <h3>&#8595; 센서 이력 내보내기</h3>
         </div>
-        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-            <label style="font-size:0.8rem; color:#64748b;">시작</label>
-            <input type="datetime-local" id="exportStart"
-                   style="background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
-            <label style="font-size:0.8rem; color:#64748b;">종료</label>
-            <input type="datetime-local" id="exportEnd"
-                   style="background:#0f172a; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
-            <button class="refresh-btn" onclick="exportData('csv')">CSV 다운로드</button>
-            <button class="refresh-btn" onclick="exportData('excel')">Excel 다운로드</button>
+        <div style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <label style="font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">시작</label>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <div style="position:relative; display:inline-flex; align-items:center;">
+                        <input type="date" id="exportStartDate"
+                               style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 36px 6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer; min-width:140px;">
+                        <span onclick="document.getElementById('exportStartDate').showPicker()"
+                              style="position:absolute; right:8px; font-size:1rem; cursor:pointer; user-select:none; color:#94a3b8;">&#128197;</span>
+                    </div>
+                    <input type="time" id="exportStartTime" value="00:00"
+                           style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer;">
+                </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <label style="font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">종료</label>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <div style="position:relative; display:inline-flex; align-items:center;">
+                        <input type="date" id="exportEndDate"
+                               style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 36px 6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer; min-width:140px;">
+                        <span onclick="document.getElementById('exportEndDate').showPicker()"
+                              style="position:absolute; right:8px; font-size:1rem; cursor:pointer; user-select:none; color:#94a3b8;">&#128197;</span>
+                    </div>
+                    <input type="time" id="exportEndTime" value="23:59"
+                           style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer;">
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; padding-bottom:1px;">
+                <button class="refresh-btn" onclick="exportData('csv')">CSV 다운로드</button>
+                <button class="refresh-btn" onclick="exportData('excel')">Excel 다운로드</button>
+            </div>
         </div>
     </div>
 
@@ -711,12 +738,16 @@
     // ─── 데이터 내보내기 ─────────────────────────────────────────
     function exportData(format) {
         if (!currentDeviceId) { alert('기기를 먼저 선택해주세요.'); return; }
-        const start = document.getElementById('exportStart').value;
-        const end   = document.getElementById('exportEnd').value;
-        if (!start || !end) { alert('날짜 범위를 입력해주세요.'); return; }
+        const startDate = document.getElementById('exportStartDate').value;
+        const startTime = document.getElementById('exportStartTime').value;
+        const endDate   = document.getElementById('exportEndDate').value;
+        const endTime   = document.getElementById('exportEndTime').value;
+        if (!startDate || !endDate) { alert('날짜 범위를 입력해주세요.'); return; }
+        const start = `${startDate}T${startTime || '00:00'}:00`;
+        const end   = `${endDate}T${endTime || '23:59'}:00`;
         const url = `/dashboard/export/${format}?deviceId=${encodeURIComponent(currentDeviceId)}`
-                  + `&start=${encodeURIComponent(start + ':00')}`
-                  + `&end=${encodeURIComponent(end + ':00')}`;
+                  + `&start=${encodeURIComponent(start)}`
+                  + `&end=${encodeURIComponent(end)}`;
         window.location.href = url;
     }
 
@@ -861,6 +892,11 @@
     document.addEventListener('DOMContentLoaded', async () => {
         temperatureChart = createChart('temperatureChart', '온도 (°C)', '#f87171');
         humidityChart = createChart('humidityChart', '습도 (%)', '#34d399');
+
+        // 내보내기 날짜 기본값: 오늘
+        const today = new Date().toISOString().slice(0, 10);
+        document.getElementById('exportStartDate').value = today;
+        document.getElementById('exportEndDate').value = today;
 
         await loadDevices();
         if (currentDeviceId) {
