@@ -2,6 +2,8 @@ package com.smartfarm.server.service;
 
 import com.smartfarm.server.dto.SensorHistoryResponseDto;
 import com.smartfarm.server.dto.SensorStatisticsDto;
+import com.smartfarm.server.entity.ControlEventLog;
+import com.smartfarm.server.repository.ControlEventLogRepository;
 import com.smartfarm.server.repository.SensorHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 public class DashboardService {
 
     private final SensorHistoryRepository historyRepository;
+    private final ControlEventLogRepository eventLogRepository;
 
     /**
      * 특정 기기의 최근 이력 데이터를 페이징하여 조회합니다.
@@ -25,6 +28,13 @@ public class DashboardService {
     public Page<SensorHistoryResponseDto> getSensorHistory(String deviceId, Pageable pageable) {
         return historyRepository.findByDeviceIdOrderByTimestampDesc(deviceId, pageable)
                 .map(SensorHistoryResponseDto::from);
+    }
+
+    /**
+     * 특정 기기의 제어 이벤트 로그를 페이징하여 조회합니다.
+     */
+    public Page<ControlEventLog> getControlEventLogs(String deviceId, Pageable pageable) {
+        return eventLogRepository.findByDeviceIdOrderByTimestampDesc(deviceId, pageable);
     }
 
     /**
