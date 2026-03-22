@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -37,6 +38,7 @@ public class SensorService {
     @Value("${smartfarm.sensor.validation.humidity-max}")
     private double humidityMax;
 
+    @Transactional
     public SensorResponseDto processSensorData(SensorRequestDto requestDto) {
         log.info("수신된 센서 데이터 확인: {}", requestDto);
 

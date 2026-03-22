@@ -34,8 +34,8 @@ public class DiscordNotificationService {
 
     private final StringRedisTemplate redisTemplate;
 
-    // HTTP 요청을 보내기 위한 RestTemplate 객체 (간단한 동기식 요청에 적합)
-    private final RestTemplate restTemplate = new RestTemplate();
+    // AppConfig에서 Bean으로 등록된 RestTemplate 주입 (싱글톤 재사용, 연결 풀 관리)
+    private final RestTemplate restTemplate;
 
     /**
      * 쿨다운을 적용하여 알림을 발송합니다.

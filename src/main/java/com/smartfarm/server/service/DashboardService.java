@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -80,17 +81,28 @@ public class DashboardService {
 
     /**
      * 등록된 모든 기기의 오늘 통계를 비교하여 반환합니다.
+     * 단일 쿼리로 모든 기기 통계를 조회하여 N+1 문제를 방지합니다.
      */
     public List<DeviceComparisonDto> getAllDevicesComparison() {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay   = LocalDate.now().atTime(23, 59, 59, 999999999);
 
         List<DeviceConfig> configs = deviceConfigRepository.findAll();
+        if (configs.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> deviceIds = configs.stream()
+                .map(DeviceConfig::getDeviceId)
+                .collect(Collectors.toList());
+
+        // 단일 쿼리로 모든 기기 통계 한 번에 조회 (N+1 방지)
+        Map<String, SensorStatisticsDto> statsMap =
+                historyRepository.getAllDevicesStatistics(deviceIds, startOfDay, endOfDay);
 
         return configs.stream()
                 .map(config -> {
-                    SensorStatisticsDto stats = historyRepository.getSensorStatistics(
-                            config.getDeviceId(), startOfDay, endOfDay);
+                    SensorStatisticsDto stats = statsMap.get(config.getDeviceId());
                     return DeviceComparisonDto.builder()
                             .deviceId(config.getDeviceId())
                             .maxTemperature(stats != null ? stats.getMaxTemperature() : null)

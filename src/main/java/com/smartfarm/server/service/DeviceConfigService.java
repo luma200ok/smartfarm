@@ -95,13 +95,15 @@ public class DeviceConfigService {
     }
 
     /**
-     * PC 클라이언트 API 키 유효성 검증
+     * PC 클라이언트 API 키 유효성 검증.
      * X-Device-Id, X-Api-Key 헤더 값을 검증합니다.
+     *
+     * <p>캐시된 {@link #getDeviceConfig(String)}를 사용하여 매 요청마다 DB를 조회하지 않습니다.</p>
      */
     public boolean validateApiKey(String deviceId, String apiKey) {
-        return deviceConfigRepository.findByDeviceId(deviceId)
-                .map(config -> config.getApiKey() != null && config.getApiKey().equals(apiKey))
-                .orElse(false);
+        DeviceConfig config = getDeviceConfig(deviceId);
+        // apiKey가 null이면 미등록 기기(기본 설정 반환)이거나 키 발급 전 상태이므로 인증 거부
+        return config.getApiKey() != null && config.getApiKey().equals(apiKey);
     }
 
     /**

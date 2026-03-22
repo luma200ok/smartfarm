@@ -27,7 +27,7 @@ public class CommandTimeoutScheduler {
     private final DeviceControlCommandRepository commandRepository;
 
     @Transactional
-    @Scheduled(fixedDelay = 5 * 60 * 1000L) // 5분마다
+    @Scheduled(fixedRate = 5 * 60 * 1000L) // 5분마다 (fixedRate: 이전 실행 완료 여부와 무관하게 고정 주기 보장)
     public void cancelTimedOutCommands() {
         LocalDateTime cutoff = LocalDateTime.now().minusMinutes(TIMEOUT_MINUTES);
         int cancelled = commandRepository.cancelTimedOutPendingCommands(cutoff);

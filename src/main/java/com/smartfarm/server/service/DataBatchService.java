@@ -124,7 +124,7 @@ public class DataBatchService {
         for (String deviceId : deviceIds) {
             SensorStatisticsDto stats = mysqlRepository.getSensorStatistics(deviceId, dayStart, dayEnd);
 
-            if (stats == null || stats.getAvgTemperature() == 0.0) {
+            if (stats == null) {
                 sb.append(String.format("\n🖥️ **%s** — 데이터 없음\n", deviceId));
                 continue;
             }
