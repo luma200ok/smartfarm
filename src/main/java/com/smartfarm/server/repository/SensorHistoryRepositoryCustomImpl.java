@@ -9,7 +9,6 @@ import com.smartfarm.server.dto.SensorStatisticsDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -51,8 +50,9 @@ public class SensorHistoryRepositoryCustomImpl implements SensorHistoryRepositor
     public List<DailyStatisticsDto> getDailyStatistics(String deviceId, LocalDateTime start, LocalDateTime end) {
 
         // timestamp 를 날짜(DATE)로 변환하는 표현식
-        DateTemplate<LocalDate> dateExpr = Expressions.dateTemplate(
-                LocalDate.class, "DATE({0})", sensorHistory.timestamp
+        // java.sql.Date 로 받아야 런타임 타입 불일치가 발생하지 않음 (DailyStatisticsDto 생성자에서 toLocalDate() 변환)
+        DateTemplate<java.sql.Date> dateExpr = Expressions.dateTemplate(
+                java.sql.Date.class, "DATE({0})", sensorHistory.timestamp
         );
 
         return queryFactory

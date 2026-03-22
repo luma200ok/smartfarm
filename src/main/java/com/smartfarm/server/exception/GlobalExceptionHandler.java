@@ -1,12 +1,14 @@
 package com.smartfarm.server.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -63,7 +65,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 4. 위에서 잡히지 않은 모든 알 수 없는 에러 처리 (최후의 보루)
+     * 4. 정적 리소스를 찾지 못한 경우 (favicon.ico 등) — ERROR 로그 없이 404 반환
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    protected ResponseEntity<Void> handleNoResourceFoundException(NoResourceFoundException e) {
+        log.debug("Static resource not found: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    /**
+     * 5. 위에서 잡히지 않은 모든 알 수 없는 에러 처리 (최후의 보루)
      */
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorResponse> handleException(Exception e) {

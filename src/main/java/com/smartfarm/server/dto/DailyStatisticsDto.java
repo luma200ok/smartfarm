@@ -1,6 +1,5 @@
 package com.smartfarm.server.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +12,6 @@ import java.time.LocalDate;
 @Getter
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
 public class DailyStatisticsDto {
 
     private LocalDate date;
@@ -22,4 +20,30 @@ public class DailyStatisticsDto {
     private Double minTemperature;
     private Double avgHumidity;
     private Long dataCount;
+
+    /** Lombok @Builder 용 전체 생성자 */
+    public DailyStatisticsDto(LocalDate date, Double avgTemperature, Double maxTemperature,
+                              Double minTemperature, Double avgHumidity, Long dataCount) {
+        this.date = date;
+        this.avgTemperature = avgTemperature;
+        this.maxTemperature = maxTemperature;
+        this.minTemperature = minTemperature;
+        this.avgHumidity = avgHumidity;
+        this.dataCount = dataCount;
+    }
+
+    /**
+     * QueryDSL Projections.constructor 전용 생성자.
+     * MySQL DATE() 함수는 런타임에 java.sql.Date 를 반환하므로
+     * 이 생성자에서 LocalDate 로 변환합니다.
+     */
+    public DailyStatisticsDto(java.sql.Date date, Double avgTemperature, Double maxTemperature,
+                              Double minTemperature, Double avgHumidity, Long dataCount) {
+        this.date = date.toLocalDate();
+        this.avgTemperature = avgTemperature;
+        this.maxTemperature = maxTemperature;
+        this.minTemperature = minTemperature;
+        this.avgHumidity = avgHumidity;
+        this.dataCount = dataCount;
+    }
 }
