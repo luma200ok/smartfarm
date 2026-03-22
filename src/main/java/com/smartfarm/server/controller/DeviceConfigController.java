@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,12 +34,14 @@ public class DeviceConfigController {
     }
 
     @Operation(summary = "기기 설정 저장/수정")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<DeviceConfigResponseDto> saveOrUpdate(@Valid @RequestBody DeviceConfigRequestDto request) {
         return ResponseEntity.ok(DeviceConfigResponseDto.from(deviceConfigService.saveOrUpdateDeviceConfig(request)));
     }
 
     @Operation(summary = "기기 설정 삭제")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{deviceId}")
     public ResponseEntity<Void> deleteConfig(@PathVariable String deviceId) {
         deviceConfigService.deleteDeviceConfig(deviceId);
@@ -46,6 +49,7 @@ public class DeviceConfigController {
     }
 
     @Operation(summary = "API 키 재발급", description = "기기의 API 키를 새 UUID로 교체합니다. 기존 키는 즉시 무효화됩니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{deviceId}/regenerate-key")
     public ResponseEntity<DeviceConfigResponseDto> regenerateApiKey(@PathVariable String deviceId) {
         return ResponseEntity.ok(deviceConfigService.regenerateApiKey(deviceId));

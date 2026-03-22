@@ -1,7 +1,9 @@
 package com.smartfarm.server.service;
 
+import com.smartfarm.server.dto.SensorStatisticsDto;
 import com.smartfarm.server.entity.SensorData;
 import com.smartfarm.server.entity.SensorHistory;
+import com.smartfarm.server.repository.DeviceConfigRepository;
 import com.smartfarm.server.repository.SensorHistoryRepository;
 import com.smartfarm.server.repository.SensorRedisRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +27,8 @@ public class DataBatchService {
 
     private final SensorRedisRepository redisRepository;
     private final SensorHistoryRepository mysqlRepository;
+    private final DeviceConfigRepository deviceConfigRepository;
+    private final DiscordNotificationService discordNotificationService;
 
     /**
      * @Scheduled를 사용한 주기적 작업
@@ -94,6 +99,50 @@ public class DataBatchService {
         } catch (Exception e) {
             log.error("[BATCH TASK] 데이터 집계/이관 중 오류 발생: {}", e.getMessage(), e);
         }
+    }
+
+    /**
+     * 매일 자정에 전날 통계를 Discord로 발송합니다.
+     * cron 표현식은 application.yaml의 smartfarm.batch.report-cron으로 설정합니다.
+     */
+    @Scheduled(cron = "${smartfarm.batch.report-cron}")
+    public void sendDailyReport() {
+        LocalDate yesterday    = LocalDate.now().minusDays(1);
+        LocalDateTime dayStart = yesterday.atStartOfDay();
+        LocalDateTime dayEnd   = yesterday.atTime(23, 59, 59, 999_999_999);
+
+        List<String> deviceIds = deviceConfigRepository.findAllDeviceIds();
+
+        if (deviceIds.isEmpty()) {
+            log.info("[DAILY REPORT] 등록된 기기가 없어 리포트를 생략합니다.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("📊 **[스마트팜 일간 리포트] %s**\n", yesterday));
+
+        for (String deviceId : deviceIds) {
+            SensorStatisticsDto stats = mysqlRepository.getSensorStatistics(deviceId, dayStart, dayEnd);
+
+            if (stats == null || stats.getAvgTemperature() == 0.0) {
+                sb.append(String.format("\n🖥️ **%s** — 데이터 없음\n", deviceId));
+                continue;
+            }
+
+            sb.append(String.format(
+                    "\n🖥️ **%s**\n" +
+                    "  🌡️ 온도  최고: %.1f°C  최저: %.1f°C  평균: %.1f°C\n" +
+                    "  💧 평균 메모리: %.1f%%\n",
+                    deviceId,
+                    stats.getMaxTemperature(),
+                    stats.getMinTemperature(),
+                    stats.getAvgTemperature(),
+                    stats.getAvgHumidity()
+            ));
+        }
+
+        discordNotificationService.sendMessage(sb.toString());
+        log.info("[DAILY REPORT] {} 일간 리포트 발송 완료 (기기 {}대)", yesterday, deviceIds.size());
     }
 
     /**
