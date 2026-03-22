@@ -611,6 +611,104 @@
 
         @media (max-width: 640px) {
             .ctrl-panel-grid { grid-template-columns: 1fr; }
+            .section-header { flex-wrap: wrap; gap: 8px; }
+            .section-header > div { flex-wrap: wrap; gap: 4px; }
+            #eventLogContainer, #controlHistoryContainer { overflow-x: auto; }
+            .log-table { min-width: 440px; }
+        }
+
+        @media (max-width: 480px) {
+            main { padding: 12px 10px; }
+            .log-card { padding: 14px 12px; }
+            .chart-card { padding: 14px 12px; }
+            .modal-box { padding: 20px 14px; margin: 0 12px; max-width: calc(100vw - 24px); }
+        }
+
+        /* ─── 커스텀 시간 선택기 ────────────────────────────────── */
+        .time-picker-wrap {
+            display: inline-flex;
+            align-items: center;
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            padding: 4px 6px 4px 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .time-picker-wrap select {
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+            padding: 2px 2px;
+        }
+
+        .time-picker-wrap input[type="number"] {
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: text;
+            width: 26px;
+            text-align: center;
+            -moz-appearance: textfield;
+        }
+
+        .time-picker-wrap input[type="number"]::-webkit-outer-spin-button,
+        .time-picker-wrap input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .time-sep { color: #94a3b8; padding: 0 1px; }
+
+        .time-icon {
+            font-size: 1rem;
+            cursor: pointer;
+            color: #94a3b8;
+            margin-left: 4px;
+            user-select: none;
+            transition: color 0.15s;
+        }
+
+        .time-icon:hover { color: #e2e8f0; }
+
+        .time-icon-wrap {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .time-picker-hidden {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+            border: none;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* ─── 내보내기 폼 반응형 ─────────────────────────────────── */
+        .export-form {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 480px) {
+            .export-form { gap: 10px; }
+            .export-form > div { width: 100%; }
+            .export-form > div > div { flex-wrap: wrap; gap: 6px !important; }
+            .time-picker-wrap { font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -727,7 +825,7 @@
         <div class="section-header">
             <h3>&#8595; 센서 이력 내보내기</h3>
         </div>
-        <div style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
+        <div class="export-form">
             <div style="display:flex; flex-direction:column; gap:6px;">
                 <label style="font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">시작</label>
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -737,8 +835,19 @@
                         <span onclick="document.getElementById('exportStartDate').showPicker()"
                               style="position:absolute; right:8px; font-size:1rem; cursor:pointer; user-select:none; color:#94a3b8;">&#128197;</span>
                     </div>
-                    <input type="time" id="exportStartTime" value="00:00"
-                           style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer;">
+                    <div class="time-picker-wrap">
+                        <select id="exportStartAmPm">
+                            <option value="AM">오전</option>
+                            <option value="PM">오후</option>
+                        </select>
+                        <input type="number" id="exportStartHour" min="1" max="12" value="12">
+                        <span class="time-sep">:</span>
+                        <input type="number" id="exportStartMinute" min="0" max="59" value="00">
+                        <span class="time-icon-wrap">
+                            <span class="time-icon" onclick="openTimePicker('Start')" title="시간 선택">🕐</span>
+                            <input type="time" class="time-picker-hidden" id="exportStartTimeNative" value="00:00">
+                        </span>
+                    </div>
                 </div>
             </div>
             <div style="display:flex; flex-direction:column; gap:6px;">
@@ -750,8 +859,19 @@
                         <span onclick="document.getElementById('exportEndDate').showPicker()"
                               style="position:absolute; right:8px; font-size:1rem; cursor:pointer; user-select:none; color:#94a3b8;">&#128197;</span>
                     </div>
-                    <input type="time" id="exportEndTime" value="23:59"
-                           style="background:#1e293b; border:1px solid #475569; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem; color-scheme:dark; cursor:pointer;">
+                    <div class="time-picker-wrap">
+                        <select id="exportEndAmPm">
+                            <option value="AM">오전</option>
+                            <option value="PM" selected>오후</option>
+                        </select>
+                        <input type="number" id="exportEndHour" min="1" max="12" value="11">
+                        <span class="time-sep">:</span>
+                        <input type="number" id="exportEndMinute" min="0" max="59" value="59">
+                        <span class="time-icon-wrap">
+                            <span class="time-icon" onclick="openTimePicker('End')" title="시간 선택">🕐</span>
+                            <input type="time" class="time-picker-hidden" id="exportEndTimeNative" value="23:59">
+                        </span>
+                    </div>
                 </div>
             </div>
             <div style="display:flex; gap:8px; padding-bottom:1px;">
@@ -1336,16 +1456,47 @@
         }
     }
 
+    // ─── 커스텀 시간 선택기 유틸 ─────────────────────────────────
+    function openTimePicker(prefix) {
+        const native = document.getElementById(`export${prefix}TimeNative`);
+        if (native && native.showPicker) native.showPicker();
+    }
+
+    function syncFromNative(prefix) {
+        const native = document.getElementById(`export${prefix}TimeNative`);
+        if (!native || !native.value) return;
+        const [h24str, minStr] = native.value.split(':');
+        const h24 = parseInt(h24str, 10);
+        let ampm, h12;
+        if      (h24 === 0)  { ampm = 'AM'; h12 = 12; }
+        else if (h24 < 12)   { ampm = 'AM'; h12 = h24; }
+        else if (h24 === 12) { ampm = 'PM'; h12 = 12; }
+        else                 { ampm = 'PM'; h12 = h24 - 12; }
+        document.getElementById(`export${prefix}AmPm`).value   = ampm;
+        document.getElementById(`export${prefix}Hour`).value   = h12;
+        document.getElementById(`export${prefix}Minute`).value = minStr;
+    }
+
+    function getTimeValue24(prefix) {
+        const ampm = document.getElementById(`export${prefix}AmPm`).value;
+        const hour = parseInt(document.getElementById(`export${prefix}Hour`).value, 10) || 12;
+        const min  = String(parseInt(document.getElementById(`export${prefix}Minute`).value, 10) || 0).padStart(2, '0');
+        let h24 = hour;
+        if      (ampm === 'AM' && hour === 12) h24 = 0;
+        else if (ampm === 'PM' && hour !== 12) h24 = hour + 12;
+        return `${String(h24).padStart(2, '0')}:${min}`;
+    }
+
     // ─── 데이터 내보내기 ─────────────────────────────────────────
     function exportData(format) {
         if (!currentDeviceId) { alert('기기를 먼저 선택해주세요.'); return; }
         const startDate = document.getElementById('exportStartDate').value;
-        const startTime = document.getElementById('exportStartTime').value;
         const endDate   = document.getElementById('exportEndDate').value;
-        const endTime   = document.getElementById('exportEndTime').value;
         if (!startDate || !endDate) { alert('날짜 범위를 입력해주세요.'); return; }
-        const start = `${startDate}T${startTime || '00:00'}:00`;
-        const end   = `${endDate}T${endTime || '23:59'}:00`;
+        const startTime = getTimeValue24('Start');
+        const endTime   = getTimeValue24('End');
+        const start = `${startDate}T${startTime}:00`;
+        const end   = `${endDate}T${endTime}:00`;
         const url = `/dashboard/export/${format}?deviceId=${encodeURIComponent(currentDeviceId)}`
                   + `&start=${encodeURIComponent(start)}`
                   + `&end=${encodeURIComponent(end)}`;
@@ -1563,6 +1714,12 @@
         const today = new Date().toISOString().slice(0, 10);
         document.getElementById('exportStartDate').value = today;
         document.getElementById('exportEndDate').value = today;
+
+        // 네이티브 time picker 변경 시 커스텀 선택기에 동기화
+        ['Start', 'End'].forEach(prefix => {
+            const native = document.getElementById(`export${prefix}TimeNative`);
+            if (native) native.addEventListener('change', () => syncFromNative(prefix));
+        });
 
         await loadDevices();
         if (currentDeviceId) {
