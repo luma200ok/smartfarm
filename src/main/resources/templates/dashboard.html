@@ -523,6 +523,67 @@
         </div>
     </div>
 
+    <!-- 📊 기간별 트렌드 분석 -->
+    <div class="log-card" style="margin-bottom:16px;">
+        <div class="section-header">
+            <h3>&#128202; 기간별 트렌드 분석</h3>
+            <div style="display:flex; gap:6px;">
+                <button class="refresh-btn" id="trend7Btn"  onclick="loadTrend(7)"  style="background:#3b82f6; color:#fff;">7일</button>
+                <button class="refresh-btn" id="trend30Btn" onclick="loadTrend(30)">30일</button>
+                <button class="refresh-btn" id="trend90Btn" onclick="loadTrend(90)">90일</button>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px;">
+            <div>
+                <p style="font-size:0.78rem; color:#94a3b8; margin-bottom:8px; text-align:center;">온도 (°C)</p>
+                <div style="position:relative; height:200px;">
+                    <canvas id="trendTempChart"></canvas>
+                </div>
+            </div>
+            <div>
+                <p style="font-size:0.78rem; color:#94a3b8; margin-bottom:8px; text-align:center;">습도 (%)</p>
+                <div style="position:relative; height:200px;">
+                    <canvas id="trendHumidChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div id="trendEmpty" style="text-align:center; color:#475569; padding:20px; display:none;">데이터가 없습니다.</div>
+    </div>
+
+    <!-- ⚠️ 알림 발생 현황 -->
+    <div class="log-card" style="margin-bottom:16px;">
+        <div class="section-header">
+            <h3>&#9888; 알림 발생 현황</h3>
+            <div style="display:flex; gap:6px;">
+                <button class="refresh-btn" id="alert7Btn"  onclick="loadAlertCount(7)"  style="background:#3b82f6; color:#fff;">7일</button>
+                <button class="refresh-btn" id="alert30Btn" onclick="loadAlertCount(30)">30일</button>
+            </div>
+        </div>
+        <div style="display:flex; gap:16px; margin-top:12px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:140px; background:#1e293b; border-radius:10px; padding:16px; text-align:center; border:1px solid #334155;">
+                <div id="alertCountValue" style="font-size:2.2rem; font-weight:700; color:#f87171;">-</div>
+                <div style="font-size:0.8rem; color:#64748b; margin-top:4px;">임계값 초과 횟수</div>
+                <div id="alertCountPeriod" style="font-size:0.75rem; color:#475569; margin-top:2px;">최근 7일</div>
+            </div>
+            <div style="flex:1; min-width:140px; background:#1e293b; border-radius:10px; padding:16px; text-align:center; border:1px solid #334155;">
+                <div id="alertAvgValue" style="font-size:2.2rem; font-weight:700; color:#fb923c;">-</div>
+                <div style="font-size:0.8rem; color:#64748b; margin-top:4px;">일 평균 알림 횟수</div>
+                <div style="font-size:0.75rem; color:#475569; margin-top:2px;">기간 내 평균</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🖥️ 기기별 비교 -->
+    <div class="log-card" style="margin-bottom:16px;">
+        <div class="section-header">
+            <h3>&#128187; 기기별 오늘 통계 비교</h3>
+            <button class="refresh-btn" onclick="loadComparison()">새로 고침</button>
+        </div>
+        <div id="comparisonContainer" style="margin-top:12px; overflow-x:auto;">
+            <div class="log-empty">데이터를 불러오는 중...</div>
+        </div>
+    </div>
+
     <!-- 제어 이벤트 로그 테이블 -->
     <div class="log-card">
         <div class="section-header">
@@ -716,6 +777,166 @@
         document.getElementById('lastUpdated').textContent = `마지막 갱신: ${now}`;
     }
 
+    // ─── 통계 분석: 트렌드 차트 ─────────────────────────────────
+    let trendTempChart = null;
+    let trendHumidChart = null;
+    let currentTrendDays = 7;
+
+    function setTrendBtnActive(days) {
+        ['7','30','90'].forEach(d => {
+            const btn = document.getElementById(`trend${d}Btn`);
+            if (btn) {
+                btn.style.background = (String(days) === d) ? '#3b82f6' : '';
+                btn.style.color      = (String(days) === d) ? '#fff'    : '';
+            }
+        });
+    }
+
+    async function loadTrend(days) {
+        if (!currentDeviceId) return;
+        currentTrendDays = days;
+        setTrendBtnActive(days);
+        try {
+            const res  = await fetch(`/api/dashboard/statistics/trend?deviceId=${encodeURIComponent(currentDeviceId)}&days=${days}`);
+            const data = await res.json();
+
+            const empty = document.getElementById('trendEmpty');
+            if (!data || data.length === 0) {
+                empty.style.display = 'block';
+                if (trendTempChart)  { trendTempChart.destroy();  trendTempChart  = null; }
+                if (trendHumidChart) { trendHumidChart.destroy(); trendHumidChart = null; }
+                return;
+            }
+            empty.style.display = 'none';
+
+            const labels  = data.map(d => d.date);
+            const avgTemp = data.map(d => d.avgTemperature ? +d.avgTemperature.toFixed(1) : null);
+            const maxTemp = data.map(d => d.maxTemperature ? +d.maxTemperature.toFixed(1) : null);
+            const minTemp = data.map(d => d.minTemperature ? +d.minTemperature.toFixed(1) : null);
+            const avgHumid = data.map(d => d.avgHumidity   ? +d.avgHumidity.toFixed(1)   : null);
+
+            const chartDefaults = {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+                scales: {
+                    x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e293b' } },
+                    y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e293b' } }
+                }
+            };
+
+            // 온도 차트
+            if (trendTempChart) trendTempChart.destroy();
+            trendTempChart = new Chart(document.getElementById('trendTempChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: '평균', data: avgTemp, backgroundColor: 'rgba(248,113,113,0.7)', borderRadius: 4 },
+                        { label: '최고', data: maxTemp, backgroundColor: 'rgba(251,146,60,0.5)',  borderRadius: 4 },
+                        { label: '최저', data: minTemp, backgroundColor: 'rgba(96,165,250,0.5)',  borderRadius: 4 }
+                    ]
+                },
+                options: chartDefaults
+            });
+
+            // 습도 차트
+            if (trendHumidChart) trendHumidChart.destroy();
+            trendHumidChart = new Chart(document.getElementById('trendHumidChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: '평균 습도', data: avgHumid, backgroundColor: 'rgba(52,211,153,0.7)', borderRadius: 4 }
+                    ]
+                },
+                options: chartDefaults
+            });
+        } catch (e) {
+            console.error('트렌드 로드 실패:', e);
+        }
+    }
+
+    // ─── 통계 분석: 알림 발생 횟수 ──────────────────────────────
+    function setAlertBtnActive(days) {
+        ['7','30'].forEach(d => {
+            const btn = document.getElementById(`alert${d}Btn`);
+            if (btn) {
+                btn.style.background = (String(days) === d) ? '#3b82f6' : '';
+                btn.style.color      = (String(days) === d) ? '#fff'    : '';
+            }
+        });
+    }
+
+    async function loadAlertCount(days) {
+        if (!currentDeviceId) return;
+        setAlertBtnActive(days);
+        try {
+            const res  = await fetch(`/api/dashboard/statistics/alert-count?deviceId=${encodeURIComponent(currentDeviceId)}&days=${days}`);
+            const data = await res.json();
+            const count = data.count ?? 0;
+            const avg   = days > 0 ? (count / days).toFixed(1) : 0;
+            document.getElementById('alertCountValue').textContent  = count;
+            document.getElementById('alertCountPeriod').textContent = `최근 ${days}일`;
+            document.getElementById('alertAvgValue').textContent    = avg;
+        } catch (e) {
+            console.error('알림 횟수 로드 실패:', e);
+        }
+    }
+
+    // ─── 통계 분석: 기기별 비교 ──────────────────────────────────
+    async function loadComparison() {
+        const container = document.getElementById('comparisonContainer');
+        try {
+            const res  = await fetch('/api/dashboard/statistics/comparison');
+            const data = await res.json();
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="log-empty">등록된 기기가 없습니다.</div>';
+                return;
+            }
+
+            const rows = data.map(d => {
+                const avg  = d.avgTemperature  != null ? d.avgTemperature.toFixed(1)  : '-';
+                const max  = d.maxTemperature  != null ? d.maxTemperature.toFixed(1)  : '-';
+                const min  = d.minTemperature  != null ? d.minTemperature.toFixed(1)  : '-';
+                const hum  = d.avgHumidity     != null ? d.avgHumidity.toFixed(1)     : '-';
+                const tempOk = d.avgTemperature != null && d.avgTemperature < d.tempThreshold;
+                const humOk  = d.avgHumidity    != null && d.avgHumidity    < d.humidityThreshold;
+                const statusColor = (tempOk && humOk) ? '#34d399' : '#f87171';
+                const statusText  = (tempOk && humOk) ? '정상'    : '경보';
+                return `<tr>
+                    <td style="padding:10px 14px; font-weight:600; color:#e2e8f0;">${d.deviceId}</td>
+                    <td style="padding:10px 14px; text-align:center; color:#f87171;">${avg} °C</td>
+                    <td style="padding:10px 14px; text-align:center; color:#fb923c;">${max} °C</td>
+                    <td style="padding:10px 14px; text-align:center; color:#60a5fa;">${min} °C</td>
+                    <td style="padding:10px 14px; text-align:center; color:#34d399;">${hum} %</td>
+                    <td style="padding:10px 14px; text-align:center; color:#94a3b8;">${d.tempThreshold} °C / ${d.humidityThreshold} %</td>
+                    <td style="padding:10px 14px; text-align:center;"><span style="color:${statusColor}; font-weight:600;">${statusText}</span></td>
+                </tr>`;
+            }).join('');
+
+            container.innerHTML = `
+                <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                    <thead>
+                        <tr style="border-bottom:1px solid #334155; color:#64748b; font-size:0.75rem;">
+                            <th style="padding:8px 14px; text-align:left;">기기 ID</th>
+                            <th style="padding:8px 14px; text-align:center;">평균 온도</th>
+                            <th style="padding:8px 14px; text-align:center;">최고 온도</th>
+                            <th style="padding:8px 14px; text-align:center;">최저 온도</th>
+                            <th style="padding:8px 14px; text-align:center;">평균 습도</th>
+                            <th style="padding:8px 14px; text-align:center;">임계값</th>
+                            <th style="padding:8px 14px; text-align:center;">상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        } catch (e) {
+            console.error('기기 비교 로드 실패:', e);
+            container.innerHTML = '<div class="log-empty">오류가 발생했습니다.</div>';
+        }
+    }
+
     // ─── 기기 삭제 ───────────────────────────────────────────────
     async function deleteCurrentDevice() {
         if (!currentDeviceId) return;
@@ -803,6 +1024,9 @@
         loadHistory();
         loadStatistics();
         loadEventLogs();
+        loadTrend(currentTrendDays);
+        loadAlertCount(7);
+        loadComparison();
         connectSSE(currentDeviceId);
     });
 
@@ -900,7 +1124,14 @@
 
         await loadDevices();
         if (currentDeviceId) {
-            await Promise.all([loadHistory(), loadStatistics(), loadEventLogs()]);
+            await Promise.all([
+                loadHistory(),
+                loadStatistics(),
+                loadEventLogs(),
+                loadTrend(7),
+                loadAlertCount(7),
+                loadComparison()
+            ]);
             connectSSE(currentDeviceId);
         }
     });
