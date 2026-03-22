@@ -3,7 +3,6 @@ package com.smartfarm.server.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -41,11 +40,10 @@ public class GlobalExceptionHandler {
         log.error("MethodArgumentNotValidException: {}", e.getMessage());
         
         // 발생한 에러들을 Map(필드명 : 에러 메시지) 형태로 정리
+        // getFieldErrors()를 사용하면 FieldError 타입이 보장되어 ClassCastException 위험이 없습니다.
         Map<String, String> errors = new HashMap<>();
-        e.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
+        e.getBindingResult().getFieldErrors().forEach((fieldError) -> {
+            errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         });
         
         ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, errors);

@@ -11,6 +11,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 // Querydsl 자동 생성 클래스인 QSensorHistory를 import 합니다.
 // (import 에러가 난다면, 우측 Gradle 탭 -> Tasks -> build -> build 를 더블클릭하여 Q클래스를 생성해주세요!)
@@ -44,6 +46,30 @@ public class SensorHistoryRepositoryCustomImpl implements SensorHistoryRepositor
                 )
                 .groupBy(sensorHistory.deviceId) // 디바이스별로 묶어서 통계를 냅니다.
                 .fetchOne(); // 결과가 1건(또는 null)이므로 fetchOne()을 사용합니다.
+    }
+
+    @Override
+    public Map<String, SensorStatisticsDto> getAllDevicesStatistics(List<String> deviceIds, LocalDateTime start, LocalDateTime end) {
+        // 단일 쿼리로 모든 기기의 통계를 한 번에 조회합니다. (N+1 방지)
+        List<SensorStatisticsDto> results = queryFactory
+                .select(Projections.constructor(SensorStatisticsDto.class,
+                        sensorHistory.deviceId,
+                        sensorHistory.temperature.max(),
+                        sensorHistory.temperature.min(),
+                        sensorHistory.temperature.avg(),
+                        sensorHistory.humidity.avg()
+                ))
+                .from(sensorHistory)
+                .where(
+                        sensorHistory.deviceId.in(deviceIds),
+                        sensorHistory.timestamp.between(start, end),
+                        sensorHistory.deletedAt.isNull()
+                )
+                .groupBy(sensorHistory.deviceId)
+                .fetch();
+
+        return results.stream()
+                .collect(Collectors.toMap(SensorStatisticsDto::getDeviceId, dto -> dto));
     }
 
     @Override

@@ -26,7 +26,7 @@ public class AdminUserInitializer implements ApplicationRunner {
                     .role("ROLE_ADMIN")
                     .build();
             userRepository.save(admin);
-            log.info(">>> 초기 관리자 계정 생성 완료 (admin / admin1234)");
+            log.info(">>> 초기 관리자 계정 생성 완료 (username: admin)");
         }
 
         if (userRepository.findByUsername("user").isEmpty()) {
@@ -36,7 +36,7 @@ public class AdminUserInitializer implements ApplicationRunner {
                     .role("ROLE_USER")
                     .build();
             userRepository.save(user);
-            log.info(">>> 초기 일반 사용자 계정 생성 완료 (user / user1234) — 조회 전용");
+            log.info(">>> 초기 일반 사용자 계정 생성 완료 (username: user) — 조회 전용");
         }
     }
 }

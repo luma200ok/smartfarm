@@ -71,7 +71,19 @@ public class DeviceApiKeyAuthFilter extends OncePerRequestFilter {
         }
 
         // API 키 유효성 검증
-        if (!deviceConfigService.validateApiKey(deviceId, apiKey)) {
+        boolean valid;
+        try {
+            valid = deviceConfigService.validateApiKey(deviceId, apiKey);
+        } catch (Exception ex) {
+            log.error(">>> [API Key Auth] 인증 처리 중 오류 — deviceId={}, path={}, error={}", deviceId, path, ex.getMessage(), ex);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write("{\"status\":500,\"message\":\"인증 처리 중 서버 오류가 발생했습니다.\"}");
+            return;
+        }
+
+        if (!valid) {
             log.warn(">>> [API Key Auth] 인증 실패 — deviceId={}, path={}", deviceId, path);
             sendUnauthorized(response, ErrorCode.INVALID_API_KEY.getMessage());
             return;
