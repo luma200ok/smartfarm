@@ -390,6 +390,76 @@
         input[type="time"]::-webkit-calendar-picker-indicator {
             display: none;
         }
+
+        /* ─── 원격 제어 버튼 ─────────────────────────────────── */
+        .ctrl-panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .ctrl-device-box {
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+
+        .ctrl-device-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+
+        .ctrl-btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ctrl-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, opacity 0.2s;
+        }
+
+        .ctrl-on {
+            background: #1e3a5f;
+            color: #60a5fa;
+            border: 1px solid #1d4ed8;
+        }
+
+        .ctrl-on:hover:not(:disabled) { background: #1d4ed8; color: #fff; }
+
+        .ctrl-off {
+            background: #3f1515;
+            color: #f87171;
+            border: 1px solid #991b1b;
+        }
+
+        .ctrl-off:hover:not(:disabled) { background: #991b1b; color: #fff; }
+
+        .ctrl-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        .ctrl-status {
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: #475569;
+            min-height: 18px;
+        }
+
+        .cmd-PENDING      { background: #2d2d10; color: #eab308; }
+        .cmd-ACKNOWLEDGED { background: #052e16; color: #4ade80; }
+        .cmd-CANCELLED    { background: #1c1c1c; color: #6b7280; }
+
+        @media (max-width: 640px) {
+            .ctrl-panel-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -580,6 +650,38 @@
             <button class="refresh-btn" onclick="loadComparison()">새로 고침</button>
         </div>
         <div id="comparisonContainer" style="margin-top:12px; overflow-x:auto;">
+            <div class="log-empty">데이터를 불러오는 중...</div>
+        </div>
+    </div>
+
+    <!-- 🎮 원격 제어 패널 -->
+    <div class="log-card" style="margin-bottom:16px;">
+        <div class="section-header">
+            <h3>&#127918; 원격 제어 (수동 On / Off)</h3>
+            <button class="refresh-btn" onclick="loadControlHistory()">이력 새로 고침</button>
+        </div>
+        <div class="ctrl-panel-grid">
+            <!-- 쿨링팬 -->
+            <div class="ctrl-device-box">
+                <div class="ctrl-device-label" style="color:#60a5fa;">&#10052; 쿨링팬</div>
+                <div class="ctrl-btn-row">
+                    <button class="ctrl-btn ctrl-on"  id="btnCoolingOn"  onclick="sendControl('COOLING_FAN_ON')">켜기 ON</button>
+                    <button class="ctrl-btn ctrl-off" id="btnCoolingOff" onclick="sendControl('COOLING_FAN_OFF')">끄기 OFF</button>
+                </div>
+                <div class="ctrl-status" id="coolingStatus"></div>
+            </div>
+            <!-- 히터 -->
+            <div class="ctrl-device-box">
+                <div class="ctrl-device-label" style="color:#f87171;">&#128293; 히터</div>
+                <div class="ctrl-btn-row">
+                    <button class="ctrl-btn ctrl-on"  id="btnHeaterOn"  onclick="sendControl('HEATER_ON')">켜기 ON</button>
+                    <button class="ctrl-btn ctrl-off" id="btnHeaterOff" onclick="sendControl('HEATER_OFF')">끄기 OFF</button>
+                </div>
+                <div class="ctrl-status" id="heaterStatus"></div>
+            </div>
+        </div>
+        <!-- 최근 제어 명령 이력 -->
+        <div id="controlHistoryContainer">
             <div class="log-empty">데이터를 불러오는 중...</div>
         </div>
     </div>
@@ -937,6 +1039,107 @@
         }
     }
 
+    // ─── 원격 제어 ───────────────────────────────────────────────
+    const CTRL_LABELS = {
+        COOLING_FAN_ON:  '쿨링팬 켜기',
+        COOLING_FAN_OFF: '쿨링팬 끄기',
+        HEATER_ON:       '히터 켜기',
+        HEATER_OFF:      '히터 끄기'
+    };
+
+    const CTRL_BTN_IDS = {
+        COOLING_FAN_ON:  'btnCoolingOn',
+        COOLING_FAN_OFF: 'btnCoolingOff',
+        HEATER_ON:       'btnHeaterOn',
+        HEATER_OFF:      'btnHeaterOff'
+    };
+
+    async function sendControl(commandType) {
+        if (!currentDeviceId) { alert('기기를 먼저 선택해주세요.'); return; }
+        if (!confirm(`[${currentDeviceId}] ${CTRL_LABELS[commandType]} 명령을 발송하시겠습니까?`)) return;
+
+        const btnId = CTRL_BTN_IDS[commandType];
+        const btn   = document.getElementById(btnId);
+        const origText = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = '전송 중...'; }
+
+        try {
+            const res = await fetch('/api/device-control/command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deviceId: currentDeviceId, commandType })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const statusElId = commandType.startsWith('COOLING') ? 'coolingStatus' : 'heaterStatus';
+                const statusEl   = document.getElementById(statusElId);
+                if (statusEl) {
+                    statusEl.innerHTML =
+                        `<span style="color:#eab308;">&#9203; PENDING</span> — ${CTRL_LABELS[commandType]} 명령 전송됨`;
+                }
+                await loadControlHistory();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert('명령 발송 실패: ' + (err.message || res.status));
+            }
+        } catch (e) {
+            console.error('제어 명령 발송 오류:', e);
+            alert('오류가 발생했습니다.');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = origText; }
+        }
+    }
+
+    async function loadControlHistory() {
+        const container = document.getElementById('controlHistoryContainer');
+        if (!currentDeviceId) return;
+        try {
+            const res = await fetch(
+                `/api/device-control/history?deviceId=${encodeURIComponent(currentDeviceId)}&page=0&size=10`
+            );
+            if (!res.ok) {
+                container.innerHTML = '<div class="log-empty">데이터를 불러오지 못했습니다.</div>';
+                return;
+            }
+            const data  = await res.json();
+            const items = data.content;
+
+            if (items.length === 0) {
+                container.innerHTML = '<div class="log-empty">수동 제어 이력이 없습니다.</div>';
+                return;
+            }
+
+            const rows = items.map(item => {
+                const statusBadge = `<span class="event-badge cmd-${item.status}">${item.status}</span>`;
+                const ackTime     = item.acknowledgedAt
+                    ? ` <span style="color:#64748b; font-size:0.75rem;">(ACK: ${formatDateTime(item.acknowledgedAt)})</span>`
+                    : '';
+                const typeClass = item.commandType.includes('COOLING') ? 'event-COOLING_FAN_ON' : 'event-HEATER_ON';
+                return `<tr>
+                    <td>${formatDateTime(item.createdAt)}</td>
+                    <td><span class="event-badge ${typeClass}">${item.commandType}</span></td>
+                    <td>${statusBadge}${ackTime}</td>
+                </tr>`;
+            }).join('');
+
+            container.innerHTML = `
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>발송 시각</th>
+                            <th>명령 종류</th>
+                            <th>처리 상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        } catch (e) {
+            console.error('제어 이력 로드 실패:', e);
+            container.innerHTML = '<div class="log-empty">오류가 발생했습니다.</div>';
+        }
+    }
+
     // ─── 기기 삭제 ───────────────────────────────────────────────
     async function deleteCurrentDevice() {
         if (!currentDeviceId) return;
@@ -1027,6 +1230,12 @@
         loadTrend(currentTrendDays);
         loadAlertCount(7);
         loadComparison();
+        loadControlHistory();
+        // 기기 변경 시 제어 상태 초기화
+        ['coolingStatus', 'heaterStatus'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '';
+        });
         connectSSE(currentDeviceId);
     });
 
@@ -1130,7 +1339,8 @@
                 loadEventLogs(),
                 loadTrend(7),
                 loadAlertCount(7),
-                loadComparison()
+                loadComparison(),
+                loadControlHistory()
             ]);
             connectSSE(currentDeviceId);
         }
