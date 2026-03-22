@@ -40,6 +40,7 @@ public class DeviceControlService {
 
     private final DeviceControlCommandRepository commandRepository;
     private final ControlEventLogRepository eventLogRepository;
+    private final SseEmitterService sseEmitterService;
 
     /**
      * 대시보드에서 수동 제어 명령을 발송합니다.
@@ -81,15 +82,21 @@ public class DeviceControlService {
         commandRepository.save(command);
 
         // 제어 이벤트 로그 기록 (MANUAL_ 접두어)
-        ControlEventLog log = ControlEventLog.builder()
+        ControlEventLog eventLog = ControlEventLog.builder()
                 .deviceId(deviceId)
                 .eventType("MANUAL_" + commandType)
                 .message("대시보드 수동 제어: " + commandType)
                 .timestamp(LocalDateTime.now())
                 .build();
-        eventLogRepository.save(log);
+        eventLogRepository.save(eventLog);
 
-        return DeviceControlCommandResponseDto.from(command);
+        DeviceControlCommandResponseDto response = DeviceControlCommandResponseDto.from(command);
+
+        // PC 클라이언트가 SSE로 연결되어 있으면 즉시 푸시
+        // 연결 안 되어 있어도 DB PENDING 상태로 유지되므로 클라이언트 재연결 시 폴링으로 수령 가능
+        sseEmitterService.sendCommandToDevice(deviceId, response);
+
+        return response;
     }
 
     /**
