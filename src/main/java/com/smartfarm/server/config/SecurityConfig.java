@@ -1,5 +1,6 @@
 package com.smartfarm.server.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,10 +8,14 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final DeviceApiKeyAuthFilter deviceApiKeyAuthFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -19,10 +24,13 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // PC 클라이언트 전용 엔드포인트는 DeviceApiKeyAuthFilter가 API 키를 검증합니다.
+        // Spring Security는 permitAll()로 통과시키되, 필터에서 인증을 강제합니다.
         http
+            .addFilterBefore(deviceApiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/login", "/api/sensor/**").permitAll()
-                // PC 클라이언트 전용 엔드포인트 — 인증 없이 접근 허용
+                // PC 클라이언트 전용 엔드포인트 — Spring Security는 허용, DeviceApiKeyAuthFilter가 API 키 검증
                 .requestMatchers("/api/device-control/pending", "/api/device-control/ack").permitAll()
                 .requestMatchers("/api/sse/device-command-stream").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()

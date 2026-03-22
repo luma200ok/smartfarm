@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 @Entity
 @Table(name = "device_config")
@@ -29,6 +30,17 @@ public class DeviceConfig implements Serializable {
     @Column(nullable = false)
     private double humidityThresholdHigh; // 고습 경보 임계치 (추후 확장을 위해 미리 추가)
 
+    @Column(nullable = false, unique = true)
+    private String apiKey; // PC 클라이언트 인증용 API 키 (UUID)
+
+    /** 신규 등록 시 API 키 자동 생성 */
+    @PrePersist
+    public void generateApiKeyIfAbsent() {
+        if (this.apiKey == null) {
+            this.apiKey = UUID.randomUUID().toString();
+        }
+    }
+
     @Builder
     public DeviceConfig(String deviceId, double temperatureThresholdHigh, double humidityThresholdHigh) {
         this.deviceId = deviceId;
@@ -39,5 +51,10 @@ public class DeviceConfig implements Serializable {
     public void update(double temperatureThresholdHigh, double humidityThresholdHigh) {
         this.temperatureThresholdHigh = temperatureThresholdHigh;
         this.humidityThresholdHigh = humidityThresholdHigh;
+    }
+
+    /** API 키 재발급 */
+    public void regenerateApiKey() {
+        this.apiKey = UUID.randomUUID().toString();
     }
 }

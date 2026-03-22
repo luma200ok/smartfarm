@@ -12,6 +12,7 @@ public class DeviceConfigResponseDto {
     private String deviceId;
     private double temperatureThresholdHigh;
     private double humidityThresholdHigh;
+    private String apiKey; // PC 클라이언트 인증용 API 키 (대시보드에서만 확인 가능)
 
     public static DeviceConfigResponseDto from(DeviceConfig entity) {
         return DeviceConfigResponseDto.builder()
@@ -19,6 +20,7 @@ public class DeviceConfigResponseDto {
                 .deviceId(entity.getDeviceId())
                 .temperatureThresholdHigh(entity.getTemperatureThresholdHigh())
                 .humidityThresholdHigh(entity.getHumidityThresholdHigh())
+                .apiKey(entity.getApiKey())
                 .build();
     }
 }

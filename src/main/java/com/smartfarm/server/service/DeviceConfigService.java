@@ -93,4 +93,28 @@ public class DeviceConfigService {
         sensorHistoryRepository.softDeleteByDeviceId(deviceId, LocalDateTime.now());
         log.info(">>> {}의 센서 이력 데이터 소프트 딜리트 완료 (1주일 후 자동 삭제)", deviceId);
     }
+
+    /**
+     * PC 클라이언트 API 키 유효성 검증
+     * X-Device-Id, X-Api-Key 헤더 값을 검증합니다.
+     */
+    public boolean validateApiKey(String deviceId, String apiKey) {
+        return deviceConfigRepository.findByDeviceId(deviceId)
+                .map(config -> config.getApiKey() != null && config.getApiKey().equals(apiKey))
+                .orElse(false);
+    }
+
+    /**
+     * API 키 재발급 — 기존 키를 새 UUID로 교체하고 캐시를 무효화합니다.
+     */
+    @Transactional
+    @CacheEvict(value = "deviceConfigObj", key = "#deviceId")
+    public DeviceConfigResponseDto regenerateApiKey(String deviceId) {
+        DeviceConfig config = deviceConfigRepository.findByDeviceId(deviceId)
+                .orElseThrow(() -> new CustomException(ErrorCode.DEVICE_NOT_FOUND));
+        config.regenerateApiKey();
+        DeviceConfig saved = deviceConfigRepository.save(config);
+        log.info(">>> {} 기기 API 키 재발급 완료", deviceId);
+        return DeviceConfigResponseDto.from(saved);
+    }
 }

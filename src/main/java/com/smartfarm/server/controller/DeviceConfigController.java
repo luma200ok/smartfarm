@@ -44,4 +44,10 @@ public class DeviceConfigController {
         deviceConfigService.deleteDeviceConfig(deviceId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "API 키 재발급", description = "기기의 API 키를 새 UUID로 교체합니다. 기존 키는 즉시 무효화됩니다.")
+    @PostMapping("/{deviceId}/regenerate-key")
+    public ResponseEntity<DeviceConfigResponseDto> regenerateApiKey(@PathVariable String deviceId) {
+        return ResponseEntity.ok(deviceConfigService.regenerateApiKey(deviceId));
+    }
 }
