@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class DeviceControlController {
     @Operation(summary = "수동 제어 명령 발송",
             description = "대시보드에서 쿨링팬 또는 히터를 수동으로 켜거나 끄는 명령을 발송합니다. "
                     + "명령 종류: COOLING_FAN_ON / COOLING_FAN_OFF / HEATER_ON / HEATER_OFF")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/command")
     public ResponseEntity<DeviceControlCommandResponseDto> sendCommand(
             @RequestBody DeviceControlCommandRequestDto request) {

@@ -27,6 +27,8 @@ smartfarm:
   batch:
     # 1분(60000ms) 단위 스케줄링 간격
     interval-ms: 60000
+    # 일간 리포트 발송 시각 (cron). 기본: 매일 자정
+    report-cron: "0 0 0 * * *"
 
   notification:
     # 디스코드 웹훅 URL 설정 (실무에서는 이 부분을 application-prod.yaml로 빼고 환경변수 처리하는 것이 안전합니다)

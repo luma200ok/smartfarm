@@ -28,5 +28,15 @@ public class AdminUserInitializer implements ApplicationRunner {
             userRepository.save(admin);
             log.info(">>> 초기 관리자 계정 생성 완료 (admin / admin1234)");
         }
+
+        if (userRepository.findByUsername("user").isEmpty()) {
+            User user = User.builder()
+                    .username("user")
+                    .password(passwordEncoder.encode("user1234"))
+                    .role("ROLE_USER")
+                    .build();
+            userRepository.save(user);
+            log.info(">>> 초기 일반 사용자 계정 생성 완료 (user / user1234) — 조회 전용");
+        }
     }
 }
