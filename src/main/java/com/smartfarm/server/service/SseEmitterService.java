@@ -115,21 +115,24 @@ public class SseEmitterService {
 
     /**
      * PC 클라이언트에 제어 명령을 즉시 푸시합니다.
-     * PC가 연결되어 있지 않으면 명령은 DB의 PENDING 상태로 유지됩니다.
-     * (PC 재연결 시 폴링으로 수령 가능)
+     *
+     * @return true  — SSE로 즉시 전달 성공
+     *         false — PC 미연결이거나 전송 중 오류 (명령은 DB PENDING 상태로 유지)
      */
-    public void sendCommandToDevice(String deviceId, Object data) {
+    public boolean sendCommandToDevice(String deviceId, Object data) {
         SseEmitter emitter = deviceCommandEmitters.get(deviceId);
         if (emitter == null) {
             log.info("[SSE-Device] {} PC 클라이언트 미연결 — 명령은 DB PENDING 유지됩니다.", deviceId);
-            return;
+            return false;
         }
         try {
             emitter.send(SseEmitter.event().name("command").data(data));
             log.info("[SSE-Device] {} 기기에 제어 명령 푸시 완료", deviceId);
+            return true;
         } catch (IOException e) {
             log.warn("[SSE-Device] {} 기기 명령 푸시 실패, 연결 제거. 명령은 DB PENDING 유지됩니다.", deviceId);
             deviceCommandEmitters.remove(deviceId, emitter);
+            return false;
         }
     }
 }

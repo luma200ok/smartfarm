@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -27,4 +28,14 @@ public interface DeviceControlCommandRepository extends JpaRepository<DeviceCont
     @Modifying
     @Query("UPDATE DeviceControlCommand c SET c.status = 'CANCELLED' WHERE c.deviceId = :deviceId AND c.status = 'PENDING'")
     int cancelAllPendingByDeviceId(String deviceId);
+
+    /**
+     * 지정 시각(cutoff) 이전에 생성된 PENDING 명령을 CANCELLED로 일괄 변경합니다.
+     * CommandTimeoutScheduler 에서 주기적으로 호출합니다.
+     *
+     * @return 취소 처리된 명령 건수
+     */
+    @Modifying
+    @Query("UPDATE DeviceControlCommand c SET c.status = 'CANCELLED' WHERE c.status = 'PENDING' AND c.createdAt < :cutoff")
+    int cancelTimedOutPendingCommands(LocalDateTime cutoff);
 }

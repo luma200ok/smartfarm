@@ -11,6 +11,7 @@ import com.smartfarm.server.exception.ErrorCode;
 import com.smartfarm.server.repository.ControlEventLogRepository;
 import com.smartfarm.server.repository.DeviceControlCommandRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DeviceControlService {
@@ -94,9 +96,62 @@ public class DeviceControlService {
 
         // PC 클라이언트가 SSE로 연결되어 있으면 즉시 푸시
         // 연결 안 되어 있어도 DB PENDING 상태로 유지되므로 클라이언트 재연결 시 폴링으로 수령 가능
-        sseEmitterService.sendCommandToDevice(deviceId, response);
+        boolean pushed = sseEmitterService.sendCommandToDevice(deviceId, response);
+        if (!pushed) {
+            log.info("[DeviceControl] {} SSE 미연결 — 명령(id={}) DB PENDING 상태로 보존됩니다.", deviceId, command.getId());
+        }
 
         return response;
+    }
+
+    /**
+     * 임계값 초과 시 자동 제어 명령을 발송합니다.
+     * - 동일 명령이 이미 PENDING이면 중복 발송을 건너뜁니다 (수동 제어와 달리 재생성하지 않음).
+     * - 반대 명령이 PENDING이면 자동 취소합니다.
+     * - ControlEventLog에 AUTO_ 접두어로 이력을 기록합니다.
+     */
+    @Transactional
+    public void sendAutoCommand(String deviceId, String commandType) {
+        // 동일 명령이 이미 PENDING이면 중복 발송 생략
+        List<DeviceControlCommand> existing =
+                commandRepository.findByDeviceIdAndCommandTypeAndStatus(deviceId, commandType, CommandStatus.PENDING);
+        if (!existing.isEmpty()) {
+            log.debug("[AutoControl] {} {} 이미 PENDING 상태 — 중복 발송 생략", deviceId, commandType);
+            return;
+        }
+
+        // 반대 명령이 PENDING 상태면 취소
+        String oppositeType = OPPOSITE_COMMAND.get(commandType);
+        if (oppositeType != null) {
+            List<DeviceControlCommand> opposite =
+                    commandRepository.findByDeviceIdAndCommandTypeAndStatus(deviceId, oppositeType, CommandStatus.PENDING);
+            opposite.forEach(DeviceControlCommand::cancel);
+        }
+
+        // 새 명령 저장
+        DeviceControlCommand command = DeviceControlCommand.builder()
+                .deviceId(deviceId)
+                .commandType(commandType)
+                .status(CommandStatus.PENDING)
+                .createdAt(LocalDateTime.now())
+                .build();
+        commandRepository.save(command);
+
+        // 제어 이벤트 로그 기록 (AUTO_ 접두어)
+        ControlEventLog eventLog = ControlEventLog.builder()
+                .deviceId(deviceId)
+                .eventType("AUTO_" + commandType)
+                .message("임계값 초과 자동 제어: " + commandType)
+                .timestamp(LocalDateTime.now())
+                .build();
+        eventLogRepository.save(eventLog);
+
+        DeviceControlCommandResponseDto response = DeviceControlCommandResponseDto.from(command);
+
+        boolean pushed = sseEmitterService.sendCommandToDevice(deviceId, response);
+        if (!pushed) {
+            log.info("[AutoControl] {} SSE 미연결 — 자동 명령(id={}) DB PENDING 상태로 보존됩니다.", deviceId, command.getId());
+        }
     }
 
     /**

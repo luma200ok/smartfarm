@@ -3,19 +3,15 @@ package com.smartfarm.server.service;
 import com.smartfarm.server.dto.SensorRequestDto;
 import com.smartfarm.server.dto.SensorResponseDto;
 import com.smartfarm.server.dto.SsePayloadDto;
-import com.smartfarm.server.entity.ControlEventLog;
 import com.smartfarm.server.entity.DeviceConfig;
 import com.smartfarm.server.entity.SensorData;
 import com.smartfarm.server.exception.CustomException;
 import com.smartfarm.server.exception.ErrorCode;
-import com.smartfarm.server.repository.ControlEventLogRepository;
 import com.smartfarm.server.repository.SensorRedisRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -24,9 +20,9 @@ public class SensorService {
 
     private final SensorRedisRepository sensorRepository;
     private final DeviceConfigService deviceConfigService;
-    private final ControlEventLogRepository controlEventLogRepository;
     private final DiscordNotificationService discordNotificationService;
     private final SseEmitterService sseEmitterService;
+    private final DeviceControlService deviceControlService;
 
     // application.yaml에서 유효성 검사 기준값을 가져옵니다.
     @Value("${smartfarm.sensor.validation.temp-min}")
@@ -55,29 +51,29 @@ public class SensorService {
         // 3. 기기별 설정값 조회
         DeviceConfig config = deviceConfigService.getDeviceConfig(sensorData.getDeviceId());
 
-        // 4. 비즈니스 로직 (역제어 명령 판단)
-        boolean needCooling = sensorData.getTemperature() >= config.getTemperatureThresholdHigh();
-        boolean needHeater = sensorData.getHumidity() >= config.getHumidityThresholdHigh();
+        // 4. 비즈니스 로직 (임계값 초과 여부 판단)
+        boolean needCooling         = sensorData.getTemperature() >= config.getTemperatureThresholdHigh();
+        boolean needHumidityControl = sensorData.getHumidity()    >= config.getHumidityThresholdHigh();
 
-        // 5. 경고 발생 시 DB에 영구 기록 및 디스코드 알림 발송
+        // 5. 경고 발생 시 자동 제어 명령 발송 + DB 이력 기록 + 디스코드 알림
         if (needCooling) {
-            String message = String.format("현재 온도: %.1f도, 설정 기준치: %.1f도", 
+            String message = String.format("현재 온도: %.1f도, 설정 기준치: %.1f도",
                                            sensorData.getTemperature(), config.getTemperatureThresholdHigh());
             log.warn("🚨 {} 온도 경고! 쿨링팬 가동 명령 발행! ({})", sensorData.getDeviceId(), message);
-            
-            saveEventLog(sensorData.getDeviceId(), "COOLING_FAN_ON", message);
-            
+
+            deviceControlService.sendAutoCommand(sensorData.getDeviceId(), "COOLING_FAN_ON");
+
             String discordMsg = String.format("🚨 **[스마트팜 경고] %s 쿨링팬 가동!**\n%s", sensorData.getDeviceId(), message);
             discordNotificationService.sendMessage(discordMsg);
         }
 
-        if (needHeater) {
-            String message = String.format("현재 습도: %.1f%%, 설정 기준치: %.1f%%", 
+        if (needHumidityControl) {
+            String message = String.format("현재 습도: %.1f%%, 설정 기준치: %.1f%%",
                                            sensorData.getHumidity(), config.getHumidityThresholdHigh());
             log.warn("🚨 {} 습도 경고! 히터 가동 명령 발행! ({})", sensorData.getDeviceId(), message);
-            
-            saveEventLog(sensorData.getDeviceId(), "HEATER_ON", message);
-            
+
+            deviceControlService.sendAutoCommand(sensorData.getDeviceId(), "HEATER_ON");
+
             String discordMsg = String.format("💧 **[스마트팜 경고] %s 히터 가동!**\n%s", sensorData.getDeviceId(), message);
             discordNotificationService.sendMessage(discordMsg);
         }
@@ -89,7 +85,7 @@ public class SensorService {
                 .humidity(sensorData.getHumidity())
                 .timestamp(sensorData.getTimestamp())
                 .coolingFanOn(needCooling)
-                .heaterOn(needHeater)
+                .heaterOn(needHumidityControl)
                 .build());
 
         // 7. 응답 반환
@@ -97,7 +93,7 @@ public class SensorService {
                 .status("SUCCESS")
                 .message("Data processed successfully")
                 .coolingFanOn(needCooling)
-                .heaterOn(needHeater)
+                .heaterOn(needHumidityControl)
                 .build();
     }
 
@@ -118,14 +114,4 @@ public class SensorService {
         }
     }
 
-    private void saveEventLog(String deviceId, String eventType, String message) {
-        ControlEventLog eventLog = ControlEventLog.builder()
-                .deviceId(deviceId)
-                .eventType(eventType)
-                .message(message)
-                .timestamp(LocalDateTime.now())
-                .build();
-                
-        controlEventLogRepository.save(eventLog);
-    }
 }

@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Tag(name = "4. 원격 제어 API",
-        description = "대시보드에서 기기(쿨링팬/히터)를 수동으로 On/Off 제어하고, PC 클라이언트가 명령을 폴링하는 API")
+        description = "대시보드에서 기기(쿨링팬/히터)를 수동으로 On/Off 제어하고, PC 클라이언트가 SSE 스트림으로 명령을 수신하는 API")
 @RestController
 @RequestMapping("/api/device-control")
 @RequiredArgsConstructor
@@ -33,8 +33,10 @@ public class DeviceControlController {
         return ResponseEntity.ok(deviceControlService.sendCommand(request));
     }
 
-    @Operation(summary = "PENDING 명령 목록 조회 (PC 클라이언트 폴링)",
-            description = "PC 클라이언트가 주기적으로 호출하여 실행 대기 중인 명령 목록을 가져갑니다.")
+    @Operation(summary = "PENDING 명령 플러시 (SSE 재연결 시 복구용)",
+            description = "SSE 연결이 끊겨 있는 동안 DB에 누적된 PENDING 명령을 한 번에 가져옵니다. "
+                    + "PC 클라이언트가 재시작 또는 재연결 직후 한 번만 호출하여 미처리 명령을 일괄 처리합니다. "
+                    + "정상 운영 중에는 /api/sse/device-command-stream 을 통해 SSE로 명령을 수신합니다.")
     @GetMapping("/pending")
     public ResponseEntity<List<DeviceControlCommandResponseDto>> getPendingCommands(
             @Parameter(description = "기기 ID", example = "WINDOWS_PC_01")

@@ -43,7 +43,14 @@ public class SecurityConfig {
                 .permitAll()
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/**")
+                // PC 클라이언트 전용 엔드포인트만 CSRF 면제 (인증이 없는 machine-to-machine 통신)
+                // 브라우저에서 호출하는 /api/device-control/command, /api/device-config/** 등은 CSRF 보호 유지
+                .ignoringRequestMatchers(
+                        "/api/sensor/**",
+                        "/api/device-control/pending",
+                        "/api/device-control/ack",
+                        "/api/sse/device-command-stream"
+                )
             );
 
         return http.build();
