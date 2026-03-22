@@ -385,6 +385,11 @@
             main { padding: 16px; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
         }
+        /* 날짜/시간 입력 기본 아이콘 숨김 */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -493,8 +498,12 @@
                     <button onclick="document.getElementById('exportStartDate').showPicker()"
                             style="position:absolute; right:6px; background:none; border:none; cursor:pointer; font-size:1rem; line-height:1; padding:0; color:#94a3b8;">📅</button>
                 </div>
-                <input type="time" id="exportStartTime" value="00:00"
-                       style="background:#1e293b; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+                <div style="position:relative; display:flex; align-items:center;">
+                    <input type="time" id="exportStartTime" value="00:00"
+                           style="background:#1e293b; border:1px solid #334155; color:#e2e8f0; padding:6px 36px 6px 10px; border-radius:6px; font-size:0.85rem; cursor:pointer;">
+                    <button onclick="document.getElementById('exportStartTime').showPicker()"
+                            style="position:absolute; right:6px; background:none; border:none; cursor:pointer; font-size:1rem; line-height:1; padding:0;">⏰</button>
+                </div>
             </div>
             <label style="font-size:0.8rem; color:#64748b;">종료</label>
             <div style="display:flex; align-items:center; gap:4px;">
@@ -504,8 +513,12 @@
                     <button onclick="document.getElementById('exportEndDate').showPicker()"
                             style="position:absolute; right:6px; background:none; border:none; cursor:pointer; font-size:1rem; line-height:1; padding:0; color:#94a3b8;">📅</button>
                 </div>
-                <input type="time" id="exportEndTime" value="23:59"
-                       style="background:#1e293b; border:1px solid #334155; color:#e2e8f0; padding:6px 10px; border-radius:6px; font-size:0.85rem;">
+                <div style="position:relative; display:flex; align-items:center;">
+                    <input type="time" id="exportEndTime" value="23:59"
+                           style="background:#1e293b; border:1px solid #334155; color:#e2e8f0; padding:6px 36px 6px 10px; border-radius:6px; font-size:0.85rem; cursor:pointer;">
+                    <button onclick="document.getElementById('exportEndTime').showPicker()"
+                            style="position:absolute; right:6px; background:none; border:none; cursor:pointer; font-size:1rem; line-height:1; padding:0;">⏰</button>
+                </div>
             </div>
             <button class="refresh-btn" onclick="exportData('csv')">CSV 다운로드</button>
             <button class="refresh-btn" onclick="exportData('excel')">Excel 다운로드</button>
