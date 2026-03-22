@@ -32,3 +32,5 @@ smartfarm:
     # 디스코드 웹훅 URL 설정 (실무에서는 이 부분을 application-prod.yaml로 빼고 환경변수 처리하는 것이 안전합니다)
     # 환경변수 DISCORD_WEBHOOK_URL에서 주입 (미설정 시 빈 문자열)
     discord-webhook-url: ${DISCORD_WEBHOOK_URL:}
+    # 같은 기기/같은 종류 알림 재발송 금지 대기 시간 (초). 기본 5분
+    cooldown-seconds: 300

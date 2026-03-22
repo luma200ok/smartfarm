@@ -64,7 +64,7 @@ public class SensorService {
             deviceControlService.sendAutoCommand(sensorData.getDeviceId(), "COOLING_FAN_ON");
 
             String discordMsg = String.format("🚨 **[스마트팜 경고] %s 쿨링팬 가동!**\n%s", sensorData.getDeviceId(), message);
-            discordNotificationService.sendMessage(discordMsg);
+            discordNotificationService.sendAlertIfNotCoolingDown(sensorData.getDeviceId(), "TEMP", discordMsg);
         }
 
         if (needHumidityControl) {
@@ -75,7 +75,7 @@ public class SensorService {
             deviceControlService.sendAutoCommand(sensorData.getDeviceId(), "HEATER_ON");
 
             String discordMsg = String.format("💧 **[스마트팜 경고] %s 히터 가동!**\n%s", sensorData.getDeviceId(), message);
-            discordNotificationService.sendMessage(discordMsg);
+            discordNotificationService.sendAlertIfNotCoolingDown(sensorData.getDeviceId(), "HUMIDITY", discordMsg);
         }
 
         // 6. SSE로 실시간 데이터 push
