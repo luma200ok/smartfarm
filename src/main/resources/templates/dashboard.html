@@ -376,14 +376,164 @@
             font-size: 0.9rem;
         }
 
-        @media (max-width: 1024px) {
-            .charts-grid { grid-template-columns: 1fr; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        /* ─── 섹션 퀵 네비게이션 ────────────────────────────────── */
+        .section-nav {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 12px 0 4px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #1e293b;
         }
 
-        @media (max-width: 640px) {
+        .section-nav a {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-decoration: none;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid #334155;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .section-nav a:hover {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        /* ─── 알림 뱃지 버튼 ─────────────────────────────────── */
+        .alert-badge-btn {
+            position: relative;
+            background: #334155;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .alert-badge-btn:hover {
+            background: #475569;
+            color: #e2e8f0;
+        }
+
+        .alert-badge-btn.has-alert {
+            border-color: #ef4444;
+            color: #f87171;
+            animation: ring 1.5s ease-in-out;
+        }
+
+        @keyframes ring {
+            0%, 100% { transform: rotate(0); }
+            15%       { transform: rotate(-12deg); }
+            30%       { transform: rotate(10deg); }
+            45%       { transform: rotate(-8deg); }
+            60%       { transform: rotate(6deg); }
+            75%       { transform: rotate(-4deg); }
+        }
+
+        .badge-count {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 1px 5px;
+            min-width: 16px;
+            text-align: center;
+            display: none;
+        }
+
+        .badge-count.visible { display: block; }
+
+        /* ─── 스크롤 to Top 버튼 ─────────────────────────────── */
+        #scrollTopBtn {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: #334155;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.25s, transform 0.25s, background 0.2s;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #scrollTopBtn.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #scrollTopBtn:hover {
+            background: #475569;
+            color: #e2e8f0;
+        }
+
+        /* ─── 트렌드 차트 그리드 클래스 ─────────────────────────── */
+        .trend-chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        /* ─── 반응형 미디어 쿼리 (강화) ─────────────────────────── */
+        @media (max-width: 1024px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .stats-grid  { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-wrap: wrap;
+                padding: 12px 16px;
+                gap: 8px;
+            }
+
+            header h1 {
+                font-size: 1.1rem;
+                flex: 0 1 auto;
+            }
+
+            .header-right {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .status-badge span { display: none; }
+
             main { padding: 16px; }
+
+            .trend-chart-grid { grid-template-columns: 1fr; }
+
+            .ctrl-panel-grid { grid-template-columns: 1fr; }
+
+            .section-nav { display: none; } /* 모바일에선 네비 숨김 */
+        }
+
+        @media (max-width: 480px) {
+            header h1 { font-size: 0.95rem; }
             .stats-grid { grid-template-columns: 1fr 1fr; }
+            .stat-card .value { font-size: 1.5rem; }
+            .stat-card { padding: 14px; }
+            .header-btn { padding: 5px 10px; font-size: 0.75rem; }
+            .device-selector { max-width: 120px; font-size: 0.8rem; }
+            #scrollTopBtn { bottom: 16px; right: 16px; }
         }
 
         input[type="date"]::-webkit-calendar-picker-indicator,
@@ -474,6 +624,10 @@
             <div class="status-dot"></div>
             <span id="lastUpdated">연결 중...</span>
         </div>
+        <button class="alert-badge-btn" id="alertBadgeBtn" onclick="onAlertBadgeClick()" title="알림 보기">
+            &#128276;
+            <span class="badge-count" id="alertBadgeCount">0</span>
+        </button>
         <button class="header-btn btn-config" onclick="openConfigModal()">&#9881; 기기 설정</button>
         <form th:action="@{/logout}" method="POST" style="margin:0;">
             <button type="submit" class="header-btn">로그아웃</button>
@@ -508,8 +662,20 @@
 
 <main>
 
+    <!-- 섹션 퀵 네비게이션 -->
+    <nav class="section-nav" aria-label="섹션 바로가기">
+        <a href="#section-stats">&#128200; 오늘 통계</a>
+        <a href="#section-realtime">&#128308; 실시간 그래프</a>
+        <a href="#section-export">&#8595; 이력 내보내기</a>
+        <a href="#section-trend">&#128202; 트렌드</a>
+        <a href="#section-alert">&#9888; 알림 현황</a>
+        <a href="#section-compare">&#128187; 기기 비교</a>
+        <a href="#section-control">&#127918; 원격 제어</a>
+        <a href="#section-eventlog">&#9889; 이벤트 로그</a>
+    </nav>
+
     <!-- 오늘의 통계 요약 패널 -->
-    <div class="stats-grid">
+    <div class="stats-grid" id="section-stats">
         <div class="stat-card stat-max">
             <div class="label">최고 온도</div>
             <div class="value" id="maxTemp">--</div>
@@ -533,7 +699,7 @@
     </div>
 
     <!-- 실시간 그래프 -->
-    <div class="charts-grid">
+    <div class="charts-grid" id="section-realtime">
         <div class="chart-card">
             <h3>
                 <span style="background:#f87171;"></span>
@@ -555,7 +721,7 @@
     </div>
 
     <!-- 센서 이력 내보내기 -->
-    <div class="log-card" style="margin-bottom:16px;">
+    <div class="log-card" id="section-export" style="margin-bottom:16px;">
         <div class="section-header">
             <h3>&#8595; 센서 이력 내보내기</h3>
         </div>
@@ -594,7 +760,7 @@
     </div>
 
     <!-- 📊 기간별 트렌드 분석 -->
-    <div class="log-card" style="margin-bottom:16px;">
+    <div class="log-card" id="section-trend" style="margin-bottom:16px;">
         <div class="section-header">
             <h3>&#128202; 기간별 트렌드 분석</h3>
             <div style="display:flex; gap:6px;">
@@ -603,7 +769,7 @@
                 <button class="refresh-btn" id="trend90Btn" onclick="loadTrend(90)">90일</button>
             </div>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px;">
+        <div class="trend-chart-grid">
             <div>
                 <p style="font-size:0.78rem; color:#94a3b8; margin-bottom:8px; text-align:center;">온도 (°C)</p>
                 <div style="position:relative; height:200px;">
@@ -621,7 +787,7 @@
     </div>
 
     <!-- ⚠️ 알림 발생 현황 -->
-    <div class="log-card" style="margin-bottom:16px;">
+    <div class="log-card" id="section-alert" style="margin-bottom:16px;">
         <div class="section-header">
             <h3>&#9888; 알림 발생 현황</h3>
             <div style="display:flex; gap:6px;">
@@ -644,7 +810,7 @@
     </div>
 
     <!-- 🖥️ 기기별 비교 -->
-    <div class="log-card" style="margin-bottom:16px;">
+    <div class="log-card" id="section-compare" style="margin-bottom:16px;">
         <div class="section-header">
             <h3>&#128187; 기기별 오늘 통계 비교</h3>
             <button class="refresh-btn" onclick="loadComparison()">새로 고침</button>
@@ -655,7 +821,7 @@
     </div>
 
     <!-- 🎮 원격 제어 패널 -->
-    <div class="log-card" style="margin-bottom:16px;">
+    <div class="log-card" id="section-control" style="margin-bottom:16px;">
         <div class="section-header">
             <h3>&#127918; 원격 제어 (수동 On / Off)</h3>
             <button class="refresh-btn" onclick="loadControlHistory()">이력 새로 고침</button>
@@ -687,7 +853,7 @@
     </div>
 
     <!-- 제어 이벤트 로그 테이블 -->
-    <div class="log-card">
+    <div class="log-card" id="section-eventlog">
         <div class="section-header">
             <h3>&#9889; 제어 이벤트 로그 (쿨링팬 / 히터 가동 이력)</h3>
             <button class="refresh-btn" onclick="loadEventLogs()">새로 고침</button>
@@ -705,6 +871,7 @@
     let temperatureChart = null;
     let humidityChart = null;
     const MAX_DATA_POINTS = 20;
+    let alertBadgeCount = 0;
 
     // ─── Chart.js 초기화 ─────────────────────────────────────────
     function createChart(canvasId, label, color) {
@@ -1194,6 +1361,10 @@
             pushChartData(data);
             document.getElementById('lastUpdated').textContent =
                 `마지막 갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
+            // 임계값 초과 알림(쿨링팬 또는 히터 가동) 발생 시 뱃지 증가
+            if (data.coolingFanOn || data.heaterOn) {
+                incrementAlertBadge();
+            }
         });
 
         eventSource.onerror = function () {
@@ -1221,6 +1392,57 @@
         humidityChart.update();
     }
 
+    // ─── 알림 뱃지 ───────────────────────────────────────────────
+    function incrementAlertBadge() {
+        alertBadgeCount++;
+        const countEl = document.getElementById('alertBadgeCount');
+        const btnEl   = document.getElementById('alertBadgeBtn');
+        if (countEl) {
+            countEl.textContent = alertBadgeCount > 99 ? '99+' : alertBadgeCount;
+            countEl.classList.add('visible');
+        }
+        if (btnEl) {
+            btnEl.classList.add('has-alert');
+            // 애니메이션 재실행을 위해 클래스 리셋
+            btnEl.style.animation = 'none';
+            btnEl.offsetHeight; // reflow
+            btnEl.style.animation = '';
+        }
+        // 페이지 타이틀 업데이트
+        document.title = `(${alertBadgeCount}) Smart-PC Farm | 모니터링 대시보드`;
+    }
+
+    function resetAlertBadge() {
+        alertBadgeCount = 0;
+        const countEl = document.getElementById('alertBadgeCount');
+        const btnEl   = document.getElementById('alertBadgeBtn');
+        if (countEl) {
+            countEl.textContent = '0';
+            countEl.classList.remove('visible');
+        }
+        if (btnEl) btnEl.classList.remove('has-alert');
+        document.title = 'Smart-PC Farm | 모니터링 대시보드';
+    }
+
+    function onAlertBadgeClick() {
+        resetAlertBadge();
+        const target = document.getElementById('section-eventlog');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // 이벤트 로그 새로 고침
+        loadEventLogs();
+    }
+
+    // ─── 스크롤 to Top 버튼 ──────────────────────────────────────
+    window.addEventListener('scroll', function () {
+        const btn = document.getElementById('scrollTopBtn');
+        if (!btn) return;
+        if (window.scrollY > 300) {
+            btn.classList.add('visible');
+        } else {
+            btn.classList.remove('visible');
+        }
+    }, { passive: true });
+
     // ─── 기기 변경 이벤트 ────────────────────────────────────────
     document.getElementById('deviceSelect').addEventListener('change', function () {
         currentDeviceId = this.value;
@@ -1231,11 +1453,12 @@
         loadAlertCount(7);
         loadComparison();
         loadControlHistory();
-        // 기기 변경 시 제어 상태 초기화
+        // 기기 변경 시 제어 상태 및 알림 뱃지 초기화
         ['coolingStatus', 'heaterStatus'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.textContent = '';
         });
+        resetAlertBadge();
         connectSSE(currentDeviceId);
     });
 
@@ -1346,6 +1569,9 @@
         }
     });
 </script>
+
+<!-- 스크롤 to Top 버튼 -->
+<button id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="맨 위로">&#8679;</button>
 
 </body>
 </html>
