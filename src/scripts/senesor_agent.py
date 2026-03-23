@@ -5,17 +5,86 @@ import os
 import threading
 import json
 import sseclient
-from dotenv import load_dotenv
+from pathlib import Path
+from dotenv import load_dotenv, set_key
 
-load_dotenv()
+# ─────────────────────────────────────────────────────────────────────────────
+# 환경 설정
+# ─────────────────────────────────────────────────────────────────────────────
+
+# 스크립트와 같은 폴더의 .env 파일 경로
+ENV_FILE    = Path(__file__).parent / ".env"
+load_dotenv(dotenv_path=ENV_FILE)
 
 MAC_IP      = os.getenv("MAC_IP")
-DEVICE_ID   = "WINDOWS_PC_SUB"
-BASE_URL    = f"http://{MAC_IP}:8080"
-SENSOR_URL  = f"{BASE_URL}/api/sensor/data"
-SSE_URL     = f"{BASE_URL}/api/sse/device-command-stream?deviceId={DEVICE_ID}"
-ACK_URL     = f"{BASE_URL}/api/device-control/ack"
-PENDING_URL = f"{BASE_URL}/api/device-control/pending?deviceId={DEVICE_ID}"
+DEVICE_ID   = os.getenv("DEVICE_ID", "WINDOWS_PC_SUB")   # .env 에서 읽거나 기본값 사용
+API_KEY     = os.getenv("API_KEY", "")                   # 최초에는 빈 문자열
+
+BASE_URL        = f"http://{MAC_IP}:8080"
+REGISTER_URL    = f"{BASE_URL}/api/device/register"
+SENSOR_URL      = f"{BASE_URL}/api/sensor/data"
+SSE_URL         = f"{BASE_URL}/api/sse/device-command-stream?deviceId={DEVICE_ID}"
+ACK_URL         = f"{BASE_URL}/api/device-control/ack"
+PENDING_URL     = f"{BASE_URL}/api/device-control/pending?deviceId={DEVICE_ID}"
+
+# 모든 PC 클라이언트 요청에 공통으로 붙는 인증 헤더
+AUTH_HEADERS    = {"X-Device-Id": DEVICE_ID, "X-Api-Key": API_KEY}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 신규 기기 자동 등록
+# ─────────────────────────────────────────────────────────────────────────────
+
+def register_device_if_needed():
+    """
+    .env 에 API_KEY 가 없으면 서버에 기기 자동 등록을 요청하고
+    발급받은 API 키를 .env 파일에 영구 저장합니다.
+    이후 AUTH_HEADERS 를 갱신하여 현재 실행에서도 즉시 사용합니다.
+    """
+    global API_KEY, AUTH_HEADERS
+
+    if API_KEY:
+        print(f"[INIT] API 키 로드 완료 (deviceId: {DEVICE_ID})")
+        return
+
+    print(f"[INIT] API 키 없음 — 서버에 기기 등록을 요청합니다. (deviceId: {DEVICE_ID})")
+    try:
+        resp = requests.post(
+            REGISTER_URL,
+            json={"deviceId": DEVICE_ID},
+            timeout=10
+        )
+
+        if resp.status_code == 200:
+            body    = resp.json()
+            API_KEY = body["apiKey"]
+
+            # .env 파일에 영구 저장
+            set_key(str(ENV_FILE), "API_KEY",   API_KEY)
+            set_key(str(ENV_FILE), "DEVICE_ID", DEVICE_ID)
+
+            # 현재 실행에서 즉시 반영
+            AUTH_HEADERS = {"X-Device-Id": DEVICE_ID, "X-Api-Key": API_KEY}
+
+            print(f"[INIT] 기기 등록 완료! API 키를 .env 에 저장했습니다.")
+            print(f"  └─ deviceId : {DEVICE_ID}")
+            print(f"  └─ apiKey   : {API_KEY}")
+
+        elif resp.status_code == 409:
+            # 이미 등록된 기기 — .env 에 키가 없는 비정상 상태
+            print(f"[INIT] ⚠️  이미 등록된 기기입니다.")
+            print(f"  └─ 대시보드에서 API 키를 재발급하고 .env 에 API_KEY=<키값> 을 직접 추가하세요.")
+            raise SystemExit(1)
+
+        else:
+            body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+            print(f"[INIT] ❌ 기기 등록 실패 (status={resp.status_code}): {body.get('message', resp.text)}")
+            raise SystemExit(1)
+
+    except requests.exceptions.RequestException as e:
+        print(f"[INIT] ❌ 서버 연결 실패: {e}")
+        raise SystemExit(1)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 제어 명령 실행
@@ -42,7 +111,7 @@ def execute_command(command_type: str):
 def send_ack(command_id: int):
     """명령 실행 후 서버에 ACK를 전송합니다."""
     try:
-        resp = requests.post(ACK_URL, json={"commandId": command_id}, timeout=5)
+        resp = requests.post(ACK_URL, json={"commandId": command_id}, headers=AUTH_HEADERS, timeout=5)
         if resp.status_code == 200:
             print(f"  ✅ ACK 전송 완료 (commandId={command_id})")
         else:
@@ -75,7 +144,7 @@ def listen_command_stream():
         try:
             print(f"[SSE] 명령 스트림 연결 시도 → {SSE_URL}")
             # stream=True + timeout=None 으로 장시간 연결 유지
-            response = requests.get(SSE_URL, stream=True, timeout=None)
+            response = requests.get(SSE_URL, headers=AUTH_HEADERS, stream=True, timeout=None)
             response.raise_for_status()
 
             client = sseclient.SSEClient(response)
@@ -106,7 +175,7 @@ def flush_pending_commands():
     (SSE 연결 직후 호출)
     """
     try:
-        resp = requests.get(PENDING_URL, timeout=5)
+        resp = requests.get(PENDING_URL, headers=AUTH_HEADERS, timeout=5)
         if resp.status_code != 200:
             return
         pending = resp.json()
@@ -151,7 +220,7 @@ def run_sensor_loop():
     while True:
         try:
             data     = get_pc_status()
-            response = requests.post(SENSOR_URL, json=data, timeout=5)
+            response = requests.post(SENSOR_URL, json=data, headers=AUTH_HEADERS, timeout=5)
 
             if response.status_code != 200:
                 try:
@@ -182,12 +251,15 @@ def run_sensor_loop():
 if __name__ == "__main__":
     print(f"--- 스마트팜 센서 에이전트 시작 (deviceId: {DEVICE_ID}, server: {BASE_URL}) ---")
 
-    # 시작 시 DB에 쌓인 PENDING 명령 처리
+    # 1단계: API 키 확인 → 없으면 자동 등록
+    register_device_if_needed()
+
+    # 2단계: 시작 시 DB에 쌓인 PENDING 명령 처리
     flush_pending_commands()
 
-    # SSE 명령 수신 스레드 (daemon=True → 메인 스레드 종료 시 함께 종료)
+    # 3단계: SSE 명령 수신 스레드 (daemon=True → 메인 스레드 종료 시 함께 종료)
     sse_thread = threading.Thread(target=listen_command_stream, daemon=True, name="SSE-Command-Listener")
     sse_thread.start()
 
-    # 메인 스레드: 센서 데이터 전송 루프
+    # 4단계: 메인 스레드: 센서 데이터 전송 루프
     run_sensor_loop()

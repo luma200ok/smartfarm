@@ -17,6 +17,9 @@ public enum ErrorCode {
     COMMAND_NOT_FOUND(HttpStatus.BAD_REQUEST, "E003", "존재하지 않는 명령입니다."),
     INVALID_COMMAND_TYPE(HttpStatus.BAD_REQUEST, "E004", "유효하지 않은 명령 종류입니다."),
 
+    // 409 Conflict
+    DEVICE_ALREADY_EXISTS(HttpStatus.CONFLICT, "E005", "이미 등록된 기기입니다."),
+
     // 401 Unauthorized
     INVALID_API_KEY(HttpStatus.UNAUTHORIZED, "A001", "유효하지 않은 API 키입니다. X-Device-Id, X-Api-Key 헤더를 확인하세요."),
     

@@ -2,6 +2,8 @@ package com.smartfarm.server.service;
 
 import com.smartfarm.server.dto.DeviceConfigRequestDto;
 import com.smartfarm.server.dto.DeviceConfigResponseDto;
+import com.smartfarm.server.dto.DeviceRegisterRequestDto;
+import com.smartfarm.server.dto.DeviceRegisterResponseDto;
 import com.smartfarm.server.entity.DeviceConfig;
 import com.smartfarm.server.exception.CustomException;
 import com.smartfarm.server.exception.ErrorCode;
@@ -104,6 +106,31 @@ public class DeviceConfigService {
         DeviceConfig config = getDeviceConfig(deviceId);
         // apiKey가 null이면 미등록 기기(기본 설정 반환)이거나 키 발급 전 상태이므로 인증 거부
         return config.getApiKey() != null && config.getApiKey().equals(apiKey);
+    }
+
+    /**
+     * 신규 PC 기기 자동 등록.
+     * API 키 없이 deviceId 만으로 처음 한 번 등록하고 API 키를 발급받습니다.
+     * 이미 등록된 deviceId면 DEVICE_ALREADY_EXISTS 예외를 발생시킵니다.
+     */
+    @Transactional
+    public DeviceRegisterResponseDto registerDevice(DeviceRegisterRequestDto request) {
+        String deviceId = request.getDeviceId();
+
+        if (deviceConfigRepository.findByDeviceId(deviceId).isPresent()) {
+            throw new CustomException(ErrorCode.DEVICE_ALREADY_EXISTS);
+        }
+
+        DeviceConfig config = DeviceConfig.builder()
+                .deviceId(deviceId)
+                .temperatureThresholdHigh(defaultTempThreshold)
+                .humidityThresholdHigh(defaultHumidityThreshold)
+                .build();
+
+        DeviceConfig saved = deviceConfigRepository.save(config); // @PrePersist 로 apiKey 자동 생성
+        log.info(">>> 신규 기기 등록 완료: {} (apiKey 자동 발급)", deviceId);
+
+        return DeviceRegisterResponseDto.from(saved);
     }
 
     /**
