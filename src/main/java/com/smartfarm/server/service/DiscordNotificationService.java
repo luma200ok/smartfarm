@@ -71,7 +71,7 @@ public class DiscordNotificationService {
      */
     private String resolveWebhookUrl(String deviceId) {
         try {
-            String deviceUrl = deviceConfigService.getDeviceConfig(deviceId).getDiscordWebhookUrl();
+            String deviceUrl = deviceConfigService.getDeviceConfig(deviceId).discordWebhookUrl();
             if (deviceUrl != null && !deviceUrl.isBlank()) {
                 log.debug("[Discord] {} 기기별 웹훅 URL 사용", deviceId);
                 return deviceUrl;

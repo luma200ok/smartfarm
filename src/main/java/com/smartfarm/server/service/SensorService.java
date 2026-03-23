@@ -1,9 +1,9 @@
 package com.smartfarm.server.service;
 
+import com.smartfarm.server.dto.DeviceConfigView;
 import com.smartfarm.server.dto.SensorRequestDto;
 import com.smartfarm.server.dto.SensorResponseDto;
 import com.smartfarm.server.dto.SsePayloadDto;
-import com.smartfarm.server.entity.DeviceConfig;
 import com.smartfarm.server.entity.SensorData;
 import com.smartfarm.server.exception.CustomException;
 import com.smartfarm.server.exception.ErrorCode;
@@ -51,16 +51,16 @@ public class SensorService {
         log.info("Redis에 센서 데이터 저장 완료: {}", sensorData.getDeviceId());
 
         // 3. 기기별 설정값 조회
-        DeviceConfig config = deviceConfigService.getDeviceConfig(sensorData.getDeviceId());
+        DeviceConfigView config = deviceConfigService.getDeviceConfig(sensorData.getDeviceId());
 
         // 4. 비즈니스 로직 (임계값 초과 여부 판단)
-        boolean needCooling        = sensorData.getTemperature() >= config.getTemperatureThresholdHigh();
-        boolean needMemUsageControl = sensorData.getMemUsage()   >= config.getMemUsageThresholdHigh();
+        boolean needCooling        = sensorData.getTemperature() >= config.temperatureThresholdHigh();
+        boolean needMemUsageControl = sensorData.getMemUsage()   >= config.memUsageThresholdHigh();
 
         // 5. 경고 발생 시 자동 제어 명령 발송 + DB 이력 기록 + 디스코드 알림
         if (needCooling) {
             String message = String.format("현재 온도: %.1f도, 설정 기준치: %.1f도",
-                                           sensorData.getTemperature(), config.getTemperatureThresholdHigh());
+                                           sensorData.getTemperature(), config.temperatureThresholdHigh());
             log.warn("🚨 {} 온도 경고! 쿨링팬 가동 명령 발행! ({})", sensorData.getDeviceId(), message);
 
             deviceControlService.sendAutoCommand(sensorData.getDeviceId(), "COOLING_FAN_ON");
@@ -71,7 +71,7 @@ public class SensorService {
 
         if (needMemUsageControl) {
             String message = String.format("현재 메모리 사용률: %.1f%%, 설정 기준치: %.1f%%",
-                                           sensorData.getMemUsage(), config.getMemUsageThresholdHigh());
+                                           sensorData.getMemUsage(), config.memUsageThresholdHigh());
             log.warn("🚨 {} 메모리 사용률 경고! 히터 가동 명령 발행! ({})", sensorData.getDeviceId(), message);
 
             deviceControlService.sendAutoCommand(sensorData.getDeviceId(), "HEATER_ON");

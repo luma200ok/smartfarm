@@ -2,6 +2,7 @@ package com.smartfarm.server.service;
 
 import com.smartfarm.server.dto.DeviceConfigRequestDto;
 import com.smartfarm.server.dto.DeviceConfigResponseDto;
+import com.smartfarm.server.dto.DeviceConfigView;
 import com.smartfarm.server.dto.DeviceRegisterRequestDto;
 import com.smartfarm.server.dto.DeviceRegisterResponseDto;
 import com.smartfarm.server.entity.DeviceConfig;
@@ -35,7 +36,7 @@ public class DeviceConfigService {
     private double defaultMemUsageThreshold;
 
     @Cacheable(value = "deviceConfigObj", key = "#deviceId")
-    public DeviceConfig getDeviceConfig(String deviceId) {
+    public DeviceConfigView getDeviceConfig(String deviceId) {
         log.info(">>> DB에서 {} 기기 설정값을 조회합니다. (이 로그가 보이면 캐시 미스 발생!)", deviceId);
 
         DeviceConfig config = deviceConfigRepository.findByDeviceId(deviceId)
@@ -44,14 +45,8 @@ public class DeviceConfigService {
                     return DeviceConfig.builder().deviceId(deviceId).build();
                 });
 
-        // null 임계값은 전역 yaml 기본값으로 채워서 반환 (DB에는 저장하지 않음)
-        if (config.getTemperatureThresholdHigh() == null) {
-            config.setTemperatureThresholdHigh(defaultTempThreshold);
-        }
-        if (config.getMemUsageThresholdHigh() == null) {
-            config.setMemUsageThresholdHigh(defaultMemUsageThreshold);
-        }
-        return config;
+        // null 임계값은 DeviceConfigView 생성 시 전역 yaml 기본값으로 채워짐 (엔티티는 변경하지 않음)
+        return DeviceConfigView.from(config, defaultTempThreshold, defaultMemUsageThreshold);
     }
 
     public List<DeviceConfigResponseDto> getAllDeviceConfigs() {
@@ -118,9 +113,9 @@ public class DeviceConfigService {
      * <p>캐시된 {@link #getDeviceConfig(String)}를 사용하여 매 요청마다 DB를 조회하지 않습니다.</p>
      */
     public boolean validateApiKey(String deviceId, String apiKey) {
-        DeviceConfig config = getDeviceConfig(deviceId);
+        DeviceConfigView view = getDeviceConfig(deviceId);
         // apiKey가 null이면 미등록 기기(기본 설정 반환)이거나 키 발급 전 상태이므로 인증 거부
-        return config.getApiKey() != null && config.getApiKey().equals(apiKey);
+        return view.apiKey() != null && view.apiKey().equals(apiKey);
     }
 
     /**
