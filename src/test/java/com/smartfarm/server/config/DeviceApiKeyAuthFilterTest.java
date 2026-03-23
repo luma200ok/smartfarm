@@ -1,9 +1,10 @@
 package com.smartfarm.server.config;
 
-import com.smartfarm.server.entity.AuditLog;
-import com.smartfarm.server.entity.DeviceConfig;
-import com.smartfarm.server.repository.AuditLogRepository;
-import com.smartfarm.server.repository.DeviceConfigRepository;
+import com.smartfarm.server.audit.entity.AuditLog;
+import com.smartfarm.server.device.entity.DeviceConfig;
+import com.smartfarm.server.audit.repository.AuditLogRepository;
+import com.smartfarm.server.device.repository.DeviceConfigRepository;
+import com.smartfarm.server.device.filter.DeviceApiKeyAuthFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

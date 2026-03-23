@@ -1,0 +1,44 @@
+package com.smartfarm.server.device.config;
+
+import com.smartfarm.server.user.entity.User;
+import com.smartfarm.server.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AdminUserInitializer implements ApplicationRunner {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public void run(ApplicationArguments args) {
+        if (userRepository.findByUsername("admin").isEmpty()) {
+            User admin = User.builder()
+                    .username("admin")
+                    .password(passwordEncoder.encode("admin1234"))
+                    .role("ROLE_ADMIN")
+                    .linkedDeviceId(null)  // admin은 전체 기기 접근
+                    .build();
+            userRepository.save(admin);
+            log.info(">>> 초기 관리자 계정 생성 완료 (username: admin)");
+        }
+
+        if (userRepository.findByUsername("user").isEmpty()) {
+            User user = User.builder()
+                    .username("user")
+                    .password(passwordEncoder.encode("user1234"))
+                    .role("ROLE_USER")
+                    .linkedDeviceId(null)  // 기기 미연결 상태 (관리자가 대시보드에서 연결 필요)
+                    .build();
+            userRepository.save(user);
+            log.info(">>> 초기 일반 사용자 계정 생성 완료 (username: user) — 조회 전용");
+        }
+    }
+}

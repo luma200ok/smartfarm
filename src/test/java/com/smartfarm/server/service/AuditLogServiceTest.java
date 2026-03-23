@@ -1,7 +1,8 @@
 package com.smartfarm.server.service;
 
-import com.smartfarm.server.entity.AuditLog;
-import com.smartfarm.server.repository.AuditLogRepository;
+import com.smartfarm.server.audit.entity.AuditLog;
+import com.smartfarm.server.audit.repository.AuditLogRepository;
+import com.smartfarm.server.audit.service.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
