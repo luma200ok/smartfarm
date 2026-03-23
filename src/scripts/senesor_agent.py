@@ -17,7 +17,7 @@ ENV_FILE    = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=ENV_FILE)
 
 MAC_IP      = os.getenv("MAC_IP")
-DEVICE_ID   = os.getenv("DEVICE_ID", "WINDOWS_PC_SUB")   # .env 에서 읽거나 기본값 사용
+DEVICE_ID   = os.getenv("DEVICE_ID")   # .env 에서 읽거나 기본값 사용
 API_KEY     = os.getenv("API_KEY", "")                   # 최초에는 빈 문자열
 
 BASE_URL        = f"http://{MAC_IP}:8080"

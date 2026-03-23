@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "smartfarm-server (local)",
+      "runtimeExecutable": "./gradlew",
+      "runtimeArgs": ["bootRun"],
+      "port": 8080
+    },
+    {
+      "name": "timepicker-test",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8090", "--directory", "/Users/jeongjaebong/IntelliJ/mycode/toy_project/smartfarm_server/.claude"],
+      "port": 8090
+    }
+  ]
+}

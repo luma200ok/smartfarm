@@ -107,18 +107,6 @@ public class DeviceConfigService {
     }
 
     /**
-     * PC 클라이언트 API 키 유효성 검증.
-     * X-Device-Id, X-Api-Key 헤더 값을 검증합니다.
-     *
-     * <p>캐시된 {@link #getDeviceConfig(String)}를 사용하여 매 요청마다 DB를 조회하지 않습니다.</p>
-     */
-    public boolean validateApiKey(String deviceId, String apiKey) {
-        DeviceConfigView view = getDeviceConfig(deviceId);
-        // apiKey가 null이면 미등록 기기(기본 설정 반환)이거나 키 발급 전 상태이므로 인증 거부
-        return view.apiKey() != null && view.apiKey().equals(apiKey);
-    }
-
-    /**
      * 신규 PC 기기 자동 등록.
      * API 키 없이 deviceId 만으로 처음 한 번 등록하고 API 키를 발급받습니다.
      * 이미 등록된 deviceId면 DEVICE_ALREADY_EXISTS 예외를 발생시킵니다.

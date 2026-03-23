@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Time Picker Test</title>
+<style>
+  body { background: #0f172a; color: #e2e8f0; font-family: sans-serif; padding: 40px; }
+  h2 { color: #94a3b8; margin-bottom: 24px; }
+  .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .row { display: flex; gap: 6px; align-items: center; margin-bottom: 32px; }
+
+  /* date picker wrapper */
+  .date-wrap { position: relative; display: inline-flex; align-items: center; }
+  .date-wrap input[type="date"] {
+    background: #1e293b; border: 1px solid #475569; color: #e2e8f0;
+    padding: 6px 36px 6px 10px; border-radius: 6px; font-size: 0.85rem;
+    color-scheme: dark; cursor: pointer; min-width: 140px;
+  }
+  .date-icon {
+    position: absolute; right: 8px; font-size: 1rem; cursor: pointer;
+    user-select: none; color: #94a3b8;
+  }
+
+  /* custom time picker */
+  .time-picker-wrap {
+    display: inline-flex; align-items: center;
+    background: #1e293b; border: 1px solid #475569;
+    border-radius: 6px; padding: 4px 6px 4px 8px;
+    font-size: 0.85rem; white-space: nowrap;
+  }
+  .time-picker-wrap select {
+    background: transparent; border: none; color: #e2e8f0;
+    font-size: 0.85rem; outline: none; cursor: pointer; padding: 2px;
+  }
+  .time-picker-wrap input[type="number"] {
+    background: transparent; border: none; color: #e2e8f0;
+    font-size: 0.85rem; outline: none; cursor: text;
+    width: 26px; text-align: center; -moz-appearance: textfield;
+  }
+  .time-picker-wrap input[type="number"]::-webkit-outer-spin-button,
+  .time-picker-wrap input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .time-sep { color: #94a3b8; padding: 0 1px; }
+
+  .time-icon {
+    font-size: 1rem; cursor: pointer; color: #94a3b8;
+    margin-left: 4px; user-select: none; transition: color 0.15s;
+  }
+  .time-icon:hover { color: #e2e8f0; }
+
+  /* KEY FIX: position:relative wrapper so showPicker() anchors to this element */
+  .time-icon-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+
+  /* invisible but rendered → browser has a bounding box to anchor the popup */
+  .time-picker-hidden {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    border: none;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .result-box {
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: 12px 16px; margin-top: 24px; font-size: 0.85rem; color: #94a3b8;
+  }
+  .result-box strong { color: #38bdf8; }
+</style>
+</head>
+<body>
+
+<h2>🕐 Time Picker Position Test</h2>
+<p style="color:#64748b; font-size:0.85rem; margin-bottom:24px;">
+  🕐 아이콘 클릭 시 팝업이 <strong style="color:#4ade80">아이콘 바로 아래</strong>에 나타나면 성공입니다.
+</p>
+
+<!-- 시작 시간 -->
+<div class="label">시작</div>
+<div class="row">
+  <div class="date-wrap">
+    <input type="date" id="startDate" value="2026-03-23">
+    <span class="date-icon" onclick="document.getElementById('startDate').showPicker()">📅</span>
+  </div>
+  <div class="time-picker-wrap">
+    <select id="startAmPm"><option value="AM">오전</option><option value="PM">오후</option></select>
+    <input type="number" id="startHour" min="1" max="12" value="12">
+    <span class="time-sep">:</span>
+    <input type="number" id="startMinute" min="0" max="59" value="00">
+    <span class="time-icon-wrap">
+      <span class="time-icon" onclick="openTimePicker('start')" title="시간 선택">🕐</span>
+      <input type="time" class="time-picker-hidden" id="startTimeNative" value="00:00">
+    </span>
+  </div>
+</div>
+
+<!-- 종료 시간 -->
+<div class="label">종료</div>
+<div class="row">
+  <div class="date-wrap">
+    <input type="date" id="endDate" value="2026-03-23">
+    <span class="date-icon" onclick="document.getElementById('endDate').showPicker()">📅</span>
+  </div>
+  <div class="time-picker-wrap">
+    <select id="endAmPm"><option value="AM">오전</option><option value="PM" selected>오후</option></select>
+    <input type="number" id="endHour" min="1" max="12" value="11">
+    <span class="time-sep">:</span>
+    <input type="number" id="endMinute" min="0" max="59" value="59">
+    <span class="time-icon-wrap">
+      <span class="time-icon" onclick="openTimePicker('end')" title="시간 선택">🕐</span>
+      <input type="time" class="time-picker-hidden" id="endTimeNative" value="23:59">
+    </span>
+  </div>
+</div>
+
+<div class="result-box" id="resultBox">
+  선택된 시간: <strong id="startResult">아직 없음</strong> ~ <strong id="endResult">아직 없음</strong>
+</div>
+
+<script>
+  function openTimePicker(prefix) {
+    const native = document.getElementById(`${prefix}TimeNative`);
+    if (native && native.showPicker) native.showPicker();
+  }
+
+  function syncFromNative(prefix) {
+    const native = document.getElementById(`${prefix}TimeNative`);
+    if (!native || !native.value) return;
+    const [h24str, minStr] = native.value.split(':');
+    const h24 = parseInt(h24str, 10);
+    let ampm, h12;
+    if      (h24 === 0)  { ampm = 'AM'; h12 = 12; }
+    else if (h24 < 12)   { ampm = 'AM'; h12 = h24; }
+    else if (h24 === 12) { ampm = 'PM'; h12 = 12; }
+    else                 { ampm = 'PM'; h12 = h24 - 12; }
+    document.getElementById(`${prefix}AmPm`).value   = ampm;
+    document.getElementById(`${prefix}Hour`).value   = h12;
+    document.getElementById(`${prefix}Minute`).value = minStr;
+    updateResult();
+  }
+
+  function updateResult() {
+    const sAmPm = document.getElementById('startAmPm').value;
+    const sH    = document.getElementById('startHour').value;
+    const sM    = String(document.getElementById('startMinute').value).padStart(2,'0');
+    const eAmPm = document.getElementById('endAmPm').value;
+    const eH    = document.getElementById('endHour').value;
+    const eM    = String(document.getElementById('endMinute').value).padStart(2,'0');
+    document.getElementById('startResult').textContent = `${sAmPm} ${sH}:${sM}`;
+    document.getElementById('endResult').textContent   = `${eAmPm} ${eH}:${eM}`;
+  }
+
+  ['start', 'end'].forEach(p => {
+    document.getElementById(`${p}TimeNative`).addEventListener('change', () => syncFromNative(p));
+  });
+</script>
+</body>
+</html>

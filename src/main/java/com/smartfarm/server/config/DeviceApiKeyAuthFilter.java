@@ -1,6 +1,7 @@
 package com.smartfarm.server.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smartfarm.server.dto.DeviceConfigView;
 import com.smartfarm.server.exception.ErrorCode;
 import com.smartfarm.server.service.DeviceConfigService;
 import jakarta.servlet.FilterChain;
@@ -71,9 +72,13 @@ public class DeviceApiKeyAuthFilter extends OncePerRequestFilter {
         }
 
         // API 키 유효성 검증
+        // DeviceConfigService.validateApiKey() 내부에서 this.getDeviceConfig() 를 호출하면
+        // self-invocation 이 되어 Spring 프록시를 우회 → @Cacheable 무시, 항상 DB 직접 조회.
+        // Filter 에서 getDeviceConfig() 를 직접 외부 호출하면 프록시가 정상 작동해 캐시 히트.
         boolean valid;
         try {
-            valid = deviceConfigService.validateApiKey(deviceId, apiKey);
+            DeviceConfigView config = deviceConfigService.getDeviceConfig(deviceId);
+            valid = config.apiKey() != null && config.apiKey().equals(apiKey);
         } catch (Exception ex) {
             log.error(">>> [API Key Auth] 인증 처리 중 오류 — deviceId={}, path={}, error={}", deviceId, path, ex.getMessage(), ex);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
