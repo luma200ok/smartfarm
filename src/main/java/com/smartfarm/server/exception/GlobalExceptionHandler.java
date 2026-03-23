@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -69,6 +70,16 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<Void> handleNoResourceFoundException(NoResourceFoundException e) {
         log.debug("Static resource not found: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    /**
+     * 4-1. SSE 연결 타임아웃 — 정상적인 동작이므로 로그 없이 무시
+     * GlobalExceptionHandler가 text/event-stream 응답에 JSON을 쓰려다 터지는 문제 방지
+     */
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    protected ResponseEntity<Void> handleAsyncRequestTimeoutException(AsyncRequestTimeoutException e) {
+        log.debug("SSE connection timed out (정상 종료)");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
     }
 
     /**
