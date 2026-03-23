@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class SsePayloadDto {
     private String deviceId;
     private double temperature;
-    private double humidity;
+    private double memUsage;
     private LocalDateTime timestamp;
     private boolean coolingFanOn;
     private boolean heaterOn;

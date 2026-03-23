@@ -33,10 +33,10 @@ public class SensorService {
     private double tempMax;
 
     @Value("${smartfarm.sensor.validation.humidity-min}")
-    private double humidityMin;
+    private double memUsageMin;
 
     @Value("${smartfarm.sensor.validation.humidity-max}")
-    private double humidityMax;
+    private double memUsageMax;
 
     @Transactional
     public SensorResponseDto processSensorData(SensorRequestDto requestDto) {
@@ -54,8 +54,8 @@ public class SensorService {
         DeviceConfig config = deviceConfigService.getDeviceConfig(sensorData.getDeviceId());
 
         // 4. 비즈니스 로직 (임계값 초과 여부 판단)
-        boolean needCooling         = sensorData.getTemperature() >= config.getTemperatureThresholdHigh();
-        boolean needHumidityControl = sensorData.getHumidity()    >= config.getHumidityThresholdHigh();
+        boolean needCooling        = sensorData.getTemperature() >= config.getTemperatureThresholdHigh();
+        boolean needMemUsageControl = sensorData.getMemUsage()   >= config.getHumidityThresholdHigh();
 
         // 5. 경고 발생 시 자동 제어 명령 발송 + DB 이력 기록 + 디스코드 알림
         if (needCooling) {
@@ -69,10 +69,10 @@ public class SensorService {
             discordNotificationService.sendAlertIfNotCoolingDown(sensorData.getDeviceId(), "TEMP", discordMsg);
         }
 
-        if (needHumidityControl) {
-            String message = String.format("현재 습도: %.1f%%, 설정 기준치: %.1f%%",
-                                           sensorData.getHumidity(), config.getHumidityThresholdHigh());
-            log.warn("🚨 {} 습도 경고! 히터 가동 명령 발행! ({})", sensorData.getDeviceId(), message);
+        if (needMemUsageControl) {
+            String message = String.format("현재 메모리 사용률: %.1f%%, 설정 기준치: %.1f%%",
+                                           sensorData.getMemUsage(), config.getHumidityThresholdHigh());
+            log.warn("🚨 {} 메모리 사용률 경고! 히터 가동 명령 발행! ({})", sensorData.getDeviceId(), message);
 
             deviceControlService.sendAutoCommand(sensorData.getDeviceId(), "HEATER_ON");
 
@@ -84,10 +84,10 @@ public class SensorService {
         sseEmitterService.sendToDevice(sensorData.getDeviceId(), SsePayloadDto.builder()
                 .deviceId(sensorData.getDeviceId())
                 .temperature(sensorData.getTemperature())
-                .humidity(sensorData.getHumidity())
+                .memUsage(sensorData.getMemUsage())
                 .timestamp(sensorData.getTimestamp())
                 .coolingFanOn(needCooling)
-                .heaterOn(needHumidityControl)
+                .heaterOn(needMemUsageControl)
                 .build());
 
         // 7. 응답 반환
@@ -95,7 +95,7 @@ public class SensorService {
                 .status("SUCCESS")
                 .message("Data processed successfully")
                 .coolingFanOn(needCooling)
-                .heaterOn(needHumidityControl)
+                .heaterOn(needMemUsageControl)
                 .build();
     }
 
@@ -104,15 +104,15 @@ public class SensorService {
      */
     private void validateSensorData(SensorRequestDto requestDto) {
         if (requestDto.getCpuTemperature() < tempMin || requestDto.getCpuTemperature() > tempMax) {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, 
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,
                     String.format("온도는 %.1f도에서 %.1f도 사이여야 합니다. (입력값: %.1f)",
                             tempMin, tempMax, requestDto.getCpuTemperature()));
         }
 
-        if (requestDto.getMemUsage() < humidityMin || requestDto.getMemUsage() > humidityMax) {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, 
-                    String.format("습도는 %.1f%%에서 %.1f%% 사이여야 합니다. (입력값: %.1f)",
-                            humidityMin, humidityMax, requestDto.getMemUsage()));
+        if (requestDto.getMemUsage() < memUsageMin || requestDto.getMemUsage() > memUsageMax) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,
+                    String.format("메모리 사용률은 %.1f%%에서 %.1f%% 사이여야 합니다. (입력값: %.1f)",
+                            memUsageMin, memUsageMax, requestDto.getMemUsage()));
         }
     }
 

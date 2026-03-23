@@ -20,6 +20,9 @@ public enum ErrorCode {
     // 409 Conflict
     DEVICE_ALREADY_EXISTS(HttpStatus.CONFLICT, "E005", "이미 등록된 기기입니다."),
 
+    // 429 Too Many Requests
+    RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "E006", "요청이 너무 많습니다. 잠시 후 다시 시도하세요."),
+
     // 401 Unauthorized
     INVALID_API_KEY(HttpStatus.UNAUTHORIZED, "A001", "유효하지 않은 API 키입니다. X-Device-Id, X-Api-Key 헤더를 확인하세요."),
     

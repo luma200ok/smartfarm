@@ -59,7 +59,7 @@ public class DataBatchService {
 
             List<SensorHistory> historyListToSave = new ArrayList<>();
 
-            // 3. 각 디바이스별로 평균값(온도, 습도)을 계산하여 하나의 History 엔티티로 만듭니다.
+            // 3. 각 디바이스별로 평균값(온도, 메모리 사용률)을 계산하여 하나의 History 엔티티로 만듭니다.
             for (Map.Entry<String, List<SensorData>> entry : groupedByDevice.entrySet()) {
                 String deviceId = entry.getKey();
                 List<SensorData> deviceDataList = entry.getValue();
@@ -69,8 +69,8 @@ public class DataBatchService {
                         .average()
                         .orElse(0.0);
 
-                double avgHumidity = deviceDataList.stream()
-                        .mapToDouble(SensorData::getHumidity)
+                double avgMemUsage = deviceDataList.stream()
+                        .mapToDouble(SensorData::getMemUsage)
                         .average()
                         .orElse(0.0);
 
@@ -81,7 +81,7 @@ public class DataBatchService {
                 SensorHistory averageHistory = SensorHistory.builder()
                         .deviceId(deviceId)
                         .temperature(Math.round(avgTemperature * 10.0) / 10.0) // 소수점 첫째 자리까지만 남김
-                        .humidity(Math.round(avgHumidity * 10.0) / 10.0)
+                        .memUsage(Math.round(avgMemUsage * 10.0) / 10.0)
                         .timestamp(now)
                         .build();
 
@@ -137,7 +137,7 @@ public class DataBatchService {
                     stats.getMaxTemperature(),
                     stats.getMinTemperature(),
                     stats.getAvgTemperature(),
-                    stats.getAvgHumidity()
+                    stats.getAvgMemUsage()
             ));
         }
 

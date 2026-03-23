@@ -174,7 +174,10 @@ public class DeviceControlService {
         DeviceControlCommand command = commandRepository.findById(request.getCommandId())
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMAND_NOT_FOUND));
         command.acknowledge();
-        return DeviceControlCommandResponseDto.from(command);
+        DeviceControlCommandResponseDto response = DeviceControlCommandResponseDto.from(command);
+        // ACK 완료 상태를 대시보드에 실시간 푸시
+        sseEmitterService.sendCommandAckToDashboard(command.getDeviceId(), response);
+        return response;
     }
 
     /**

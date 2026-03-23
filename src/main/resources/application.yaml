@@ -14,8 +14,8 @@ spring:
 smartfarm:
   sensor:
     # DB에 설정값이 없을 때 사용할 기본 온도/습도 임계치
-    default-temp-threshold: 70.0
-    default-humidity-threshold: 90.0
+    default-temp-threshold: 60.0
+    default-humidity-threshold: 60.0
     
     # 데이터 유효성 검사를 위한 범위 설정
     validation:
@@ -34,5 +34,5 @@ smartfarm:
     # 디스코드 웹훅 URL 설정 (실무에서는 이 부분을 application-prod.yaml로 빼고 환경변수 처리하는 것이 안전합니다)
     # 환경변수 DISCORD_WEBHOOK_URL에서 주입 (미설정 시 빈 문자열)
     discord-webhook-url: ${DISCORD_WEBHOOK_URL:}
-    # 같은 기기/같은 종류 알림 재발송 금지 대기 시간 (초). 기본 5분
-    cooldown-seconds: 300
+    # 같은 기기/같은 종류 알림 재발송 금지 대기 시간 (초). 기본 2분
+    cooldown-seconds: 120

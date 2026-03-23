@@ -16,7 +16,7 @@ public class SensorHistoryResponseDto {
     private Long id;
     private String deviceId;
     private double temperature;
-    private double humidity;
+    private double memUsage;
     private LocalDateTime timestamp;
 
     /**
@@ -27,7 +27,7 @@ public class SensorHistoryResponseDto {
                 .id(entity.getId())
                 .deviceId(entity.getDeviceId())
                 .temperature(entity.getTemperature())
-                .humidity(entity.getHumidity())
+                .memUsage(entity.getMemUsage())
                 .timestamp(entity.getTimestamp())
                 .build();
     }

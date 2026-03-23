@@ -1085,7 +1085,7 @@
                 temperatureChart.data.labels.push(label);
                 temperatureChart.data.datasets[0].data.push(item.temperature.toFixed(1));
                 humidityChart.data.labels.push(label);
-                humidityChart.data.datasets[0].data.push(item.humidity.toFixed(1));
+                humidityChart.data.datasets[0].data.push(item.memUsage.toFixed(1));
             });
 
             temperatureChart.update();
@@ -1109,7 +1109,7 @@
                 data.maxTemperature.toFixed(1),
                 data.minTemperature.toFixed(1),
                 data.avgTemperature.toFixed(1),
-                data.avgHumidity.toFixed(1)
+                data.avgMemUsage.toFixed(1)
             );
         } catch (e) {
             console.error('통계 로드 실패:', e);
@@ -1228,7 +1228,7 @@
             const avgTemp = data.map(d => d.avgTemperature ? +d.avgTemperature.toFixed(1) : null);
             const maxTemp = data.map(d => d.maxTemperature ? +d.maxTemperature.toFixed(1) : null);
             const minTemp = data.map(d => d.minTemperature ? +d.minTemperature.toFixed(1) : null);
-            const avgHumid = data.map(d => d.avgHumidity   ? +d.avgHumidity.toFixed(1)   : null);
+            const avgHumid = data.map(d => d.avgMemUsage   ? +d.avgMemUsage.toFixed(1)   : null);
 
             const chartDefaults = {
                 responsive: true, maintainAspectRatio: false,
@@ -1314,9 +1314,9 @@
                 const avg  = d.avgTemperature  != null ? d.avgTemperature.toFixed(1)  : '-';
                 const max  = d.maxTemperature  != null ? d.maxTemperature.toFixed(1)  : '-';
                 const min  = d.minTemperature  != null ? d.minTemperature.toFixed(1)  : '-';
-                const hum  = d.avgHumidity     != null ? d.avgHumidity.toFixed(1)     : '-';
+                const hum  = d.avgMemUsage     != null ? d.avgMemUsage.toFixed(1)     : '-';
                 const tempOk = d.avgTemperature != null && d.avgTemperature < d.tempThreshold;
-                const humOk  = d.avgHumidity    != null && d.avgHumidity    < d.humidityThreshold;
+                const humOk  = d.avgMemUsage    != null && d.avgMemUsage    < d.humidityThreshold;
                 const statusColor = (tempOk && humOk) ? '#34d399' : '#f87171';
                 const statusText  = (tempOk && humOk) ? '정상'    : '경보';
                 return `<tr>
@@ -1545,6 +1545,12 @@
             }
         });
 
+        eventSource.addEventListener('command-ack', function(e) {
+            const ack = JSON.parse(e.data);
+            console.log('[SSE] 명령 ACK:', ack.commandType, '→', ack.status);
+            // 필요시 UI 업데이트 로직 추가
+        });
+
         eventSource.onerror = function () {
             console.warn('[SSE] 연결 오류 - 브라우저가 자동 재연결합니다.');
         };
@@ -1562,7 +1568,7 @@
         temperatureChart.update();
 
         humidityChart.data.labels.push(label);
-        humidityChart.data.datasets[0].data.push(parseFloat(data.humidity).toFixed(1));
+        humidityChart.data.datasets[0].data.push(parseFloat(data.memUsage).toFixed(1));
         if (humidityChart.data.labels.length > MAX_DATA_POINTS) {
             humidityChart.data.labels.shift();
             humidityChart.data.datasets[0].data.shift();

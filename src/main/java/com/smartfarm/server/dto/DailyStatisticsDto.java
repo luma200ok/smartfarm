@@ -18,17 +18,17 @@ public class DailyStatisticsDto {
     private Double avgTemperature;
     private Double maxTemperature;
     private Double minTemperature;
-    private Double avgHumidity;
+    private Double avgMemUsage;
     private Long dataCount;
 
     /** Lombok @Builder 용 전체 생성자 */
     public DailyStatisticsDto(LocalDate date, Double avgTemperature, Double maxTemperature,
-                              Double minTemperature, Double avgHumidity, Long dataCount) {
+                              Double minTemperature, Double avgMemUsage, Long dataCount) {
         this.date = date;
         this.avgTemperature = avgTemperature;
         this.maxTemperature = maxTemperature;
         this.minTemperature = minTemperature;
-        this.avgHumidity = avgHumidity;
+        this.avgMemUsage = avgMemUsage;
         this.dataCount = dataCount;
     }
 
@@ -38,12 +38,12 @@ public class DailyStatisticsDto {
      * 이 생성자에서 LocalDate 로 변환합니다.
      */
     public DailyStatisticsDto(java.sql.Date date, Double avgTemperature, Double maxTemperature,
-                              Double minTemperature, Double avgHumidity, Long dataCount) {
+                              Double minTemperature, Double avgMemUsage, Long dataCount) {
         this.date = date.toLocalDate();
         this.avgTemperature = avgTemperature;
         this.maxTemperature = maxTemperature;
         this.minTemperature = minTemperature;
-        this.avgHumidity = avgHumidity;
+        this.avgMemUsage = avgMemUsage;
         this.dataCount = dataCount;
     }
 }

@@ -23,8 +23,8 @@ public class SensorData {
     // 이전에는 cpuUsage라는 이름으로 온도를 저장하고 있었으므로, 의미를 명확히 하기 위해 temperature로 변경합니다.
     private double temperature; 
     
-    // 이전에는 memoryUsage라는 이름으로 습도를 저장하고 있었으므로, 의미를 명확히 하기 위해 humidity로 변경합니다.
-    private double humidity;    
+    // 이전에는 memoryUsage라는 이름으로 습도를 저장하고 있었으므로, 의미를 명확히 하기 위해 memUsage로 변경합니다.
+    private double memUsage;
 
     private LocalDateTime timestamp;
 }

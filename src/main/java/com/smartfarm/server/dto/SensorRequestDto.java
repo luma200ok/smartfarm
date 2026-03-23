@@ -48,7 +48,7 @@ public class SensorRequestDto {
         return SensorData.builder()
                 .deviceId(this.deviceId)
                 .temperature(this.cpuTemperature) // Entity의 필드명 변경 반영
-                .humidity(this.memUsage)          // Entity의 필드명 변경 반영
+                .memUsage(this.memUsage)          // Entity의 필드명 변경 반영
                 .timestamp(convertedTimestamp)
                 .build();
     }

@@ -69,6 +69,24 @@ public class SseEmitterService {
         });
     }
 
+    /**
+     * PC 클라이언트 ACK 완료 시 대시보드(브라우저)에 명령 상태 변경을 실시간 푸시합니다.
+     */
+    public void sendCommandAckToDashboard(String deviceId, Object data) {
+        List<SseEmitter> emitters = dashboardEmitters.get(deviceId);
+        if (emitters == null || emitters.isEmpty()) return;
+
+        emitters.removeIf(emitter -> {
+            try {
+                emitter.send(SseEmitter.event().name("command-ack").data(data));
+                return false;
+            } catch (IOException e) {
+                log.debug("[SSE-Dashboard] {} 기기 ACK 이벤트 전송 실패, 제거합니다.", deviceId);
+                return true;
+            }
+        });
+    }
+
     private void removeDashboardEmitter(String deviceId, SseEmitter emitter) {
         List<SseEmitter> emitters = dashboardEmitters.get(deviceId);
         if (emitters != null) {

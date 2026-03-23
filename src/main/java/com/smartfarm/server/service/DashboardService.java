@@ -108,7 +108,7 @@ public class DashboardService {
                             .maxTemperature(stats != null ? stats.getMaxTemperature() : null)
                             .minTemperature(stats != null ? stats.getMinTemperature() : null)
                             .avgTemperature(stats != null ? stats.getAvgTemperature() : null)
-                            .avgHumidity(stats != null ? stats.getAvgHumidity() : null)
+                            .avgMemUsage(stats != null ? stats.getAvgMemUsage() : null)
                             .tempThreshold(config.getTemperatureThresholdHigh())
                             .humidityThreshold(config.getHumidityThresholdHigh())
                             .build();
