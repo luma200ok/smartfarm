@@ -59,16 +59,21 @@ def register_device_if_needed():
             body    = resp.json()
             API_KEY = body["apiKey"]
 
+            # .env 파일이 없으면 미리 생성 (python-dotenv 구버전 호환)
+            if not ENV_FILE.exists():
+                ENV_FILE.touch()
+
             # .env 파일에 영구 저장
             set_key(str(ENV_FILE), "API_KEY",   API_KEY)
             set_key(str(ENV_FILE), "DEVICE_ID", DEVICE_ID)
 
-            # 현재 실행에서 즉시 반영
+            # 현재 실행에서 즉시 반영 (이후 모든 요청에 사용)
             AUTH_HEADERS = {"X-Device-Id": DEVICE_ID, "X-Api-Key": API_KEY}
 
             print(f"[INIT] 기기 등록 완료! API 키를 .env 에 저장했습니다.")
-            print(f"  └─ deviceId : {DEVICE_ID}")
-            print(f"  └─ apiKey   : {API_KEY}")
+            print(f"  └─ deviceId  : {DEVICE_ID}")
+            print(f"  └─ apiKey    : {API_KEY}")
+            print(f"  └─ .env 경로 : {ENV_FILE}")
 
         elif resp.status_code == 409:
             # 이미 등록된 기기 — .env 에 키가 없는 비정상 상태

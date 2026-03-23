@@ -112,8 +112,14 @@ public class DeviceConfigService {
      * 신규 PC 기기 자동 등록.
      * API 키 없이 deviceId 만으로 처음 한 번 등록하고 API 키를 발급받습니다.
      * 이미 등록된 deviceId면 DEVICE_ALREADY_EXISTS 예외를 발생시킵니다.
+     *
+     * <p>{@code @CacheEvict} 이유: 등록 전에 같은 deviceId로 보호 경로(예: /api/sensor/data)에
+     * 접근 시도가 있었다면 {@link #getDeviceConfig(String)}이 apiKey=null 인 기본 설정을
+     * 캐시에 저장했을 수 있습니다. 등록 완료 시 반드시 해당 캐시를 무효화해야 이후 인증이
+     * 정상적으로 DB 값을 읽습니다.</p>
      */
     @Transactional
+    @CacheEvict(value = "deviceConfigObj", key = "#request.deviceId")
     public DeviceRegisterResponseDto registerDevice(DeviceRegisterRequestDto request) {
         String deviceId = request.getDeviceId();
 
