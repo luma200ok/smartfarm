@@ -20,14 +20,14 @@ import java.time.LocalDateTime;
 @RestController
 @RequestMapping("/api/export")
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
 public class ExportController {
 
     private final ExportService exportService;
 
     @Operation(
             summary = "CSV 내보내기",
-            description = "기간 내 센서 이력 데이터를 UTF-8 BOM CSV 파일로 다운로드합니다. (로그인 필요)")
+            description = "기간 내 센서 이력 데이터를 UTF-8 BOM CSV 파일로 다운로드합니다. (ADMIN만 가능)")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/csv")
     public void exportCsv(
             @Parameter(description = "기기 ID", example = "WINDOWS_PC_01") @RequestParam String deviceId,
@@ -41,7 +41,8 @@ public class ExportController {
 
     @Operation(
             summary = "Excel 내보내기",
-            description = "기간 내 센서 이력 데이터를 xlsx 파일로 다운로드합니다. (로그인 필요)")
+            description = "기간 내 센서 이력 데이터를 xlsx 파일로 다운로드합니다. (ADMIN만 가능)")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/excel")
     public void exportExcel(
             @Parameter(description = "기기 ID", example = "WINDOWS_PC_01") @RequestParam String deviceId,

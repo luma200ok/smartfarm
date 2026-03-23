@@ -1,0 +1,27 @@
+# 테스트(Test) 환경 설정 파일
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6380
+
+  datasource:
+    # H2 인메모리 데이터베이스 (테스트 전용)
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # 각 테스트마다 스키마 생성 후 삭제
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          batch_size: 500
+        order_inserts: true
+
+  flyway:
+    enabled: false  # 테스트에서는 Flyway 비활성화, Hibernate이 스키마 생성

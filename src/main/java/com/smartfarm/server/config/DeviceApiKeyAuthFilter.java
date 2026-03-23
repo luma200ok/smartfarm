@@ -3,6 +3,7 @@ package com.smartfarm.server.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartfarm.server.dto.DeviceConfigView;
 import com.smartfarm.server.exception.ErrorCode;
+import com.smartfarm.server.service.AuditLogService;
 import com.smartfarm.server.service.DeviceConfigService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -46,6 +47,7 @@ public class DeviceApiKeyAuthFilter extends OncePerRequestFilter {
     );
 
     private final DeviceConfigService deviceConfigService;
+    private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -67,6 +69,8 @@ public class DeviceApiKeyAuthFilter extends OncePerRequestFilter {
         // 헤더 누락 검사
         if (deviceId == null || deviceId.isBlank() || apiKey == null || apiKey.isBlank()) {
             log.warn(">>> [API Key Auth] 헤더 누락 — path={}, X-Device-Id={}", path, deviceId);
+            String reason = "Missing required headers: X-Device-Id or X-Api-Key";
+            auditLogService.logAuthFailure(deviceId != null ? deviceId : "UNKNOWN", reason, getClientIp(request));
             sendUnauthorized(response, "X-Device-Id, X-Api-Key 헤더가 필요합니다.");
             return;
         }
@@ -81,6 +85,8 @@ public class DeviceApiKeyAuthFilter extends OncePerRequestFilter {
             valid = config.apiKey() != null && config.apiKey().equals(apiKey);
         } catch (Exception ex) {
             log.error(">>> [API Key Auth] 인증 처리 중 오류 — deviceId={}, path={}, error={}", deviceId, path, ex.getMessage(), ex);
+            String reason = "Authentication processing error: " + ex.getMessage();
+            auditLogService.logAuthFailure(deviceId, reason, getClientIp(request));
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
@@ -90,6 +96,8 @@ public class DeviceApiKeyAuthFilter extends OncePerRequestFilter {
 
         if (!valid) {
             log.warn(">>> [API Key Auth] 인증 실패 — deviceId={}, path={}", deviceId, path);
+            String reason = "Invalid API key provided";
+            auditLogService.logAuthFailure(deviceId, reason, getClientIp(request));
             sendUnauthorized(response, ErrorCode.INVALID_API_KEY.getMessage());
             return;
         }
@@ -100,6 +108,18 @@ public class DeviceApiKeyAuthFilter extends OncePerRequestFilter {
 
     private boolean isProtectedPath(String path) {
         return PROTECTED_PREFIXES.stream().anyMatch(path::startsWith);
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+        return request.getRemoteAddr();
     }
 
     private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {

@@ -15,8 +15,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +33,7 @@ public class DeviceConfigService {
 
     private final DeviceConfigRepository deviceConfigRepository;
     private final SensorHistoryRepository sensorHistoryRepository;
+    private final AuditLogService auditLogService;
 
     @Value("${smartfarm.sensor.default-temp-threshold}")
     private double defaultTempThreshold;
@@ -66,6 +72,8 @@ public class DeviceConfigService {
                         .deviceId(request.getDeviceId())
                         .build());
 
+        boolean isNew = config.getId() == null;
+
         if (config.getId() != null) {
             config.update(request.getTemperatureThresholdHigh(), request.getMemUsageThresholdHigh(),
                           request.getDiscordWebhookUrl());
@@ -82,6 +90,13 @@ public class DeviceConfigService {
         }
 
         DeviceConfig saved = deviceConfigRepository.save(config);
+
+        // 감사 로그: 기기 설정 변경 기록
+        String changes = String.format("temperatureThreshold=%s, memUsageThreshold=%s, webhookUrl=%s",
+                request.getTemperatureThresholdHigh(), request.getMemUsageThresholdHigh(),
+                request.getDiscordWebhookUrl() != null ? "***" : "null");
+        auditLogService.logDeviceConfigChange(request.getDeviceId(), getPrincipalName(), changes, getClientIp());
+
         return DeviceConfigResponseDto.from(saved, defaultTempThreshold, defaultMemUsageThreshold);
     }
 
@@ -133,6 +148,9 @@ public class DeviceConfigService {
         DeviceConfig saved = deviceConfigRepository.save(config); // @PrePersist 로 apiKey 자동 생성
         log.info(">>> 신규 기기 등록 완료: {} (apiKey 자동 발급)", deviceId);
 
+        // 감사 로그: API 키 생성 기록
+        auditLogService.logApiKeyGenerated(deviceId, getPrincipalName(), getClientIp());
+
         return DeviceRegisterResponseDto.from(saved, defaultTempThreshold, defaultMemUsageThreshold);
     }
 
@@ -147,6 +165,53 @@ public class DeviceConfigService {
         config.regenerateApiKey();
         DeviceConfig saved = deviceConfigRepository.save(config);
         log.info(">>> {} 기기 API 키 재발급 완료", deviceId);
+
+        // 감사 로그: API 키 재발급 기록
+        auditLogService.logApiKeyRenewal(deviceId, getPrincipalName(), getClientIp());
+
         return DeviceConfigResponseDto.from(saved, defaultTempThreshold, defaultMemUsageThreshold);
+    }
+
+    /**
+     * 현재 인증된 사용자의 이름을 반환합니다.
+     */
+    private String getPrincipalName() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()) {
+                return authentication.getName();
+            }
+        } catch (Exception e) {
+            log.debug("Failed to extract principal name", e);
+        }
+        return "SYSTEM";
+    }
+
+    /**
+     * 현재 HTTP 요청의 클라이언트 IP를 추출합니다.
+     */
+    private String getClientIp() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes == null) {
+                return "UNKNOWN";
+            }
+
+            HttpServletRequest request = attributes.getRequest();
+            String xForwardedFor = request.getHeader("X-Forwarded-For");
+            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                return xForwardedFor.split(",")[0].trim();
+            }
+
+            String xRealIp = request.getHeader("X-Real-IP");
+            if (xRealIp != null && !xRealIp.isEmpty()) {
+                return xRealIp;
+            }
+
+            return request.getRemoteAddr();
+        } catch (Exception e) {
+            log.debug("Failed to extract client IP", e);
+            return "UNKNOWN";
+        }
     }
 }

@@ -56,6 +56,7 @@ public class DeviceControlController {
 
     @Operation(summary = "제어 명령 이력 조회",
             description = "특정 기기의 수동 제어 명령 이력을 최신순으로 페이징하여 반환합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/history")
     public ResponseEntity<Page<DeviceControlCommandResponseDto>> getCommandHistory(
             @Parameter(description = "기기 ID", example = "WINDOWS_PC_01")
