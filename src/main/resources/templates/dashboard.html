@@ -744,12 +744,24 @@
             <input type="text" id="configDeviceId" readonly style="color:#64748b; cursor:not-allowed;">
         </div>
         <div class="modal-field">
-            <label>고온 임계값 (°C)</label>
-            <input type="number" id="configTempThreshold" step="0.1" min="0" max="150">
+            <label>고온 임계값 (°C) <span id="globalTempHint" style="font-size:0.72rem; color:#94a3b8; font-weight:400;"></span></label>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <input type="number" id="configTempThreshold" step="0.1" min="0" max="150" style="flex:1;">
+                <button type="button" onclick="resetTempThreshold()" title="전역 기본값으로 초기화"
+                        style="padding:6px 10px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#94a3b8; cursor:pointer; font-size:0.78rem; white-space:nowrap;">
+                    초기화
+                </button>
+            </div>
         </div>
         <div class="modal-field">
-            <label>메모리 사용률 임계값 (%)</label>
-            <input type="number" id="configMemUsageThreshold" step="0.1" min="0" max="100">
+            <label>메모리 사용률 임계값 (%) <span id="globalMemHint" style="font-size:0.72rem; color:#94a3b8; font-weight:400;"></span></label>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <input type="number" id="configMemUsageThreshold" step="0.1" min="0" max="100" style="flex:1;">
+                <button type="button" onclick="resetMemThreshold()" title="전역 기본값으로 초기화"
+                        style="padding:6px 10px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#94a3b8; cursor:pointer; font-size:0.78rem; white-space:nowrap;">
+                    초기화
+                </button>
+            </div>
         </div>
         <div class="modal-field">
             <label>Discord 웹훅 URL (기기별, 미입력 시 전역 설정 사용)</label>
@@ -1687,8 +1699,14 @@
             const res = await fetch(`/api/device-config/${encodeURIComponent(currentDeviceId)}`);
             if (res.ok) {
                 const data = await res.json();
-                document.getElementById('configTempThreshold').value = data.temperatureThresholdHigh;
-                document.getElementById('configMemUsageThreshold').value = data.memUsageThresholdHigh;
+                // 전역 기본값을 hint로 표시
+                document.getElementById('globalTempHint').textContent = `(전역 기본값: ${data.globalTempThreshold}°C)`;
+                document.getElementById('globalMemHint').textContent  = `(전역 기본값: ${data.globalMemUsageThreshold}%)`;
+                // 기기별 오버라이드가 있으면 표시, null이면 빈 값 (placeholder가 전역 기본값 안내)
+                document.getElementById('configTempThreshold').value = data.temperatureThresholdHigh ?? '';
+                document.getElementById('configTempThreshold').placeholder = `비우면 전역 기본값 (${data.globalTempThreshold}°C) 사용`;
+                document.getElementById('configMemUsageThreshold').value = data.memUsageThresholdHigh ?? '';
+                document.getElementById('configMemUsageThreshold').placeholder = `비우면 전역 기본값 (${data.globalMemUsageThreshold}%) 사용`;
                 document.getElementById('configDiscordWebhookUrl').value = data.discordWebhookUrl || '';
                 document.getElementById('configApiKey').value = data.apiKey ?? '(미등록 기기 — 저장 후 발급됩니다)';
             }
@@ -1736,10 +1754,17 @@
         }
     }
 
+    function resetTempThreshold() {
+        document.getElementById('configTempThreshold').value = '';
+    }
+    function resetMemThreshold() {
+        document.getElementById('configMemUsageThreshold').value = '';
+    }
+
     async function saveConfig() {
         const deviceId = document.getElementById('configDeviceId').value;
-        const tempThreshold = parseFloat(document.getElementById('configTempThreshold').value);
-        const memUsageThreshold = parseFloat(document.getElementById('configMemUsageThreshold').value);
+        const tempVal = document.getElementById('configTempThreshold').value.trim();
+        const memVal  = document.getElementById('configMemUsageThreshold').value.trim();
         const msgEl = document.getElementById('configMessage');
 
         try {
@@ -1748,8 +1773,8 @@
                 headers: { 'Content-Type': 'application/json', ...getCsrfHeaders() },
                 body: JSON.stringify({
                     deviceId,
-                    temperatureThresholdHigh: tempThreshold,
-                    memUsageThresholdHigh: memUsageThreshold,
+                    temperatureThresholdHigh: tempVal ? parseFloat(tempVal) : null,
+                    memUsageThresholdHigh: memVal  ? parseFloat(memVal)  : null,
                     discordWebhookUrl: document.getElementById('configDiscordWebhookUrl').value || null
                 })
             });

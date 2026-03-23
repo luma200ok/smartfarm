@@ -38,42 +38,56 @@ public class DeviceConfigService {
     public DeviceConfig getDeviceConfig(String deviceId) {
         log.info(">>> DB에서 {} 기기 설정값을 조회합니다. (이 로그가 보이면 캐시 미스 발생!)", deviceId);
 
-        return deviceConfigRepository.findByDeviceId(deviceId)
+        DeviceConfig config = deviceConfigRepository.findByDeviceId(deviceId)
                 .orElseGet(() -> {
-                    log.info(">>> 등록된 기기 설정이 없어 기본 설정값을 반환합니다. (온도: {}, 메모리 사용률: {})", defaultTempThreshold, defaultMemUsageThreshold);
-                    return DeviceConfig.builder()
-                            .deviceId(deviceId)
-                            .temperatureThresholdHigh(defaultTempThreshold)
-                            .memUsageThresholdHigh(defaultMemUsageThreshold)
-                            .build();
+                    log.info(">>> 등록된 기기 설정이 없어 임시 기본 설정값을 반환합니다.");
+                    return DeviceConfig.builder().deviceId(deviceId).build();
                 });
+
+        // null 임계값은 전역 yaml 기본값으로 채워서 반환 (DB에는 저장하지 않음)
+        if (config.getTemperatureThresholdHigh() == null) {
+            config.setTemperatureThresholdHigh(defaultTempThreshold);
+        }
+        if (config.getMemUsageThresholdHigh() == null) {
+            config.setMemUsageThresholdHigh(defaultMemUsageThreshold);
+        }
+        return config;
     }
 
     public List<DeviceConfigResponseDto> getAllDeviceConfigs() {
         return deviceConfigRepository.findAll().stream()
-                .map(DeviceConfigResponseDto::from)
+                .map(e -> DeviceConfigResponseDto.from(e, defaultTempThreshold, defaultMemUsageThreshold))
                 .toList();
     }
 
     /** REST API(DeviceConfigController)에서 호출하는 저장/수정 메서드 */
     @Transactional
     @CacheEvict(value = "deviceConfigObj", key = "#request.deviceId")
-    public DeviceConfig saveOrUpdateDeviceConfig(DeviceConfigRequestDto request) {
+    public DeviceConfigResponseDto saveOrUpdateDeviceConfig(DeviceConfigRequestDto request) {
         log.info(">>> 기기 설정 저장/수정 및 캐시 삭제: {}", request.getDeviceId());
 
         DeviceConfig config = deviceConfigRepository.findByDeviceId(request.getDeviceId())
                 .orElse(DeviceConfig.builder()
                         .deviceId(request.getDeviceId())
-                        .temperatureThresholdHigh(request.getTemperatureThresholdHigh())
-                        .memUsageThresholdHigh(request.getMemUsageThresholdHigh())
                         .build());
 
         if (config.getId() != null) {
             config.update(request.getTemperatureThresholdHigh(), request.getMemUsageThresholdHigh(),
                           request.getDiscordWebhookUrl());
+        } else {
+            // 신규 — 요청값이 있으면 설정, 없으면(null이면) 전역 기본값 상속(null 유지)
+            if (request.getTemperatureThresholdHigh() != null) {
+                config.setTemperatureThresholdHigh(request.getTemperatureThresholdHigh());
+            }
+            if (request.getMemUsageThresholdHigh() != null) {
+                config.setMemUsageThresholdHigh(request.getMemUsageThresholdHigh());
+            }
+            config.update(request.getTemperatureThresholdHigh(), request.getMemUsageThresholdHigh(),
+                          request.getDiscordWebhookUrl());
         }
 
-        return deviceConfigRepository.save(config);
+        DeviceConfig saved = deviceConfigRepository.save(config);
+        return DeviceConfigResponseDto.from(saved, defaultTempThreshold, defaultMemUsageThreshold);
     }
 
     /** 내부(SensorService)에서 호출하는 기존 저장 메서드 - 하위 호환 유지 */
@@ -128,16 +142,15 @@ public class DeviceConfigService {
             throw new CustomException(ErrorCode.DEVICE_ALREADY_EXISTS);
         }
 
+        // 임계값 null → 전역 yaml 기본값 상속
         DeviceConfig config = DeviceConfig.builder()
                 .deviceId(deviceId)
-                .temperatureThresholdHigh(defaultTempThreshold)
-                .memUsageThresholdHigh(defaultMemUsageThreshold)
                 .build();
 
         DeviceConfig saved = deviceConfigRepository.save(config); // @PrePersist 로 apiKey 자동 생성
         log.info(">>> 신규 기기 등록 완료: {} (apiKey 자동 발급)", deviceId);
 
-        return DeviceRegisterResponseDto.from(saved);
+        return DeviceRegisterResponseDto.from(saved, defaultTempThreshold, defaultMemUsageThreshold);
     }
 
     /**
@@ -151,6 +164,6 @@ public class DeviceConfigService {
         config.regenerateApiKey();
         DeviceConfig saved = deviceConfigRepository.save(config);
         log.info(">>> {} 기기 API 키 재발급 완료", deviceId);
-        return DeviceConfigResponseDto.from(saved);
+        return DeviceConfigResponseDto.from(saved, defaultTempThreshold, defaultMemUsageThreshold);
     }
 }

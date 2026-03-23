@@ -24,6 +24,7 @@ public class AdminUserInitializer implements ApplicationRunner {
                     .username("admin")
                     .password(passwordEncoder.encode("admin1234"))
                     .role("ROLE_ADMIN")
+                    .linkedDeviceId(null)  // admin은 전체 기기 접근
                     .build();
             userRepository.save(admin);
             log.info(">>> 초기 관리자 계정 생성 완료 (username: admin)");
@@ -34,6 +35,7 @@ public class AdminUserInitializer implements ApplicationRunner {
                     .username("user")
                     .password(passwordEncoder.encode("user1234"))
                     .role("ROLE_USER")
+                    .linkedDeviceId(null)  // 기기 미연결 상태 (관리자가 대시보드에서 연결 필요)
                     .build();
             userRepository.save(user);
             log.info(">>> 초기 일반 사용자 계정 생성 완료 (username: user) — 조회 전용");

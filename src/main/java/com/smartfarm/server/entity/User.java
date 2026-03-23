@@ -24,10 +24,19 @@ public class User {
     @Column(nullable = false)
     private String role; // ROLE_ADMIN, ROLE_USER
 
+    @Column(nullable = true)
+    private String linkedDeviceId; // null = 전체 기기 접근 (admin), not-null = 해당 기기만 접근 (일반 사용자)
+
     @Builder
-    public User(String username, String password, String role) {
-        this.username = username;
-        this.password = password;
-        this.role = role;
+    public User(String username, String password, String role, String linkedDeviceId) {
+        this.username       = username;
+        this.password       = password;
+        this.role           = role;
+        this.linkedDeviceId = linkedDeviceId;
+    }
+
+    public void update(String role, String linkedDeviceId) {
+        this.role           = role;
+        this.linkedDeviceId = linkedDeviceId;
     }
 }

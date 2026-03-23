@@ -21,12 +21,12 @@ public class DeviceRegisterResponseDto {
     private double memUsageThresholdHigh;
     private String message;
 
-    public static DeviceRegisterResponseDto from(DeviceConfig config) {
+    public static DeviceRegisterResponseDto from(DeviceConfig config, double globalTempThreshold, double globalMemUsageThreshold) {
         return DeviceRegisterResponseDto.builder()
                 .deviceId(config.getDeviceId())
                 .apiKey(config.getApiKey())
-                .temperatureThresholdHigh(config.getTemperatureThresholdHigh())
-                .memUsageThresholdHigh(config.getMemUsageThresholdHigh())
+                .temperatureThresholdHigh(globalTempThreshold)
+                .memUsageThresholdHigh(globalMemUsageThreshold)
                 .message("기기 등록 완료. API 키를 .env 파일에 저장하세요. 재조회 불가 — 분실 시 대시보드에서 재발급하세요.")
                 .build();
     }

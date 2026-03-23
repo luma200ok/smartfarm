@@ -10,6 +10,7 @@ import com.smartfarm.server.repository.ControlEventLogRepository;
 import com.smartfarm.server.repository.DeviceConfigRepository;
 import com.smartfarm.server.repository.SensorHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,12 @@ public class DashboardService {
     private final SensorHistoryRepository historyRepository;
     private final ControlEventLogRepository eventLogRepository;
     private final DeviceConfigRepository deviceConfigRepository;
+
+    @Value("${smartfarm.sensor.default-temp-threshold}")
+    private double defaultTempThreshold;
+
+    @Value("${smartfarm.sensor.default-mem-usage-threshold}")
+    private double defaultMemUsageThreshold;
 
     /**
      * 등록된 기기 ID 목록을 조회합니다. (대시보드 셀렉터용)
@@ -109,8 +116,10 @@ public class DashboardService {
                             .minTemperature(stats != null ? stats.getMinTemperature() : null)
                             .avgTemperature(stats != null ? stats.getAvgTemperature() : null)
                             .avgMemUsage(stats != null ? stats.getAvgMemUsage() : null)
-                            .tempThreshold(config.getTemperatureThresholdHigh())
-                            .memUsageThreshold(config.getMemUsageThresholdHigh())
+                            .tempThreshold(config.getTemperatureThresholdHigh() != null
+                                    ? config.getTemperatureThresholdHigh() : defaultTempThreshold)
+                            .memUsageThreshold(config.getMemUsageThresholdHigh() != null
+                                    ? config.getMemUsageThresholdHigh() : defaultMemUsageThreshold)
                             .build();
                 })
                 .collect(Collectors.toList());

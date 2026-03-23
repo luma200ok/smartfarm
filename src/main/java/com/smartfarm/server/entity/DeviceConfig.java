@@ -24,11 +24,11 @@ public class DeviceConfig implements Serializable {
     @Column(nullable = false, unique = true)
     private String deviceId; // 기기 고유 ID (예: SENSOR-001)
 
-    @Column(nullable = false)
-    private double temperatureThresholdHigh; // 고온 경보 임계치 (이 온도 이상이면 쿨링팬 가동)
+    @Column(nullable = true)
+    private Double temperatureThresholdHigh; // 고온 경보 임계치 (null = 전역 yaml 기본값 사용)
 
-    @Column(nullable = false)
-    private double memUsageThresholdHigh; // 메모리 사용률 경보 임계치
+    @Column(nullable = true)
+    private Double memUsageThresholdHigh; // 메모리 사용률 경보 임계치 (null = 전역 yaml 기본값 사용)
 
     @Column(nullable = false, unique = true)
     private String apiKey; // PC 클라이언트 인증용 API 키 (UUID)
@@ -45,16 +45,24 @@ public class DeviceConfig implements Serializable {
     }
 
     @Builder
-    public DeviceConfig(String deviceId, double temperatureThresholdHigh, double memUsageThresholdHigh) {
+    public DeviceConfig(String deviceId, Double temperatureThresholdHigh, Double memUsageThresholdHigh) {
         this.deviceId = deviceId;
         this.temperatureThresholdHigh = temperatureThresholdHigh;
         this.memUsageThresholdHigh = memUsageThresholdHigh;
     }
 
-    public void update(double temperatureThresholdHigh, double memUsageThresholdHigh, String discordWebhookUrl) {
+    public void update(Double temperatureThresholdHigh, Double memUsageThresholdHigh, String discordWebhookUrl) {
         this.temperatureThresholdHigh = temperatureThresholdHigh;
         this.memUsageThresholdHigh    = memUsageThresholdHigh;
         this.discordWebhookUrl        = discordWebhookUrl;
+    }
+
+    public void setTemperatureThresholdHigh(Double temperatureThresholdHigh) {
+        this.temperatureThresholdHigh = temperatureThresholdHigh;
+    }
+
+    public void setMemUsageThresholdHigh(Double memUsageThresholdHigh) {
+        this.memUsageThresholdHigh = memUsageThresholdHigh;
     }
 
     public void setDiscordWebhookUrl(String discordWebhookUrl) {
