@@ -35,7 +35,7 @@ public class DeviceConfigService {
     @Value("${smartfarm.sensor.default-mem-usage-threshold}")
     private double defaultMemUsageThreshold;
 
-    @Cacheable(value = "deviceConfigObj", key = "#deviceId")
+    @Cacheable(value = "deviceConfigView", key = "#deviceId")
     public DeviceConfigView getDeviceConfig(String deviceId) {
         log.info(">>> DB에서 {} 기기 설정값을 조회합니다. (이 로그가 보이면 캐시 미스 발생!)", deviceId);
 
@@ -57,7 +57,7 @@ public class DeviceConfigService {
 
     /** REST API(DeviceConfigController)에서 호출하는 저장/수정 메서드 */
     @Transactional
-    @CacheEvict(value = "deviceConfigObj", key = "#request.deviceId")
+    @CacheEvict(value = "deviceConfigView", key = "#request.deviceId")
     public DeviceConfigResponseDto saveOrUpdateDeviceConfig(DeviceConfigRequestDto request) {
         log.info(">>> 기기 설정 저장/수정 및 캐시 삭제: {}", request.getDeviceId());
 
@@ -87,14 +87,14 @@ public class DeviceConfigService {
 
     /** 내부(SensorService)에서 호출하는 기존 저장 메서드 - 하위 호환 유지 */
     @Transactional
-    @CacheEvict(value = "deviceConfigObj", key = "#deviceConfig.deviceId")
+    @CacheEvict(value = "deviceConfigView", key = "#deviceConfig.deviceId")
     public void saveOrUpdateDeviceConfig(DeviceConfig deviceConfig) {
         log.info(">>> 기기 설정 저장 및 캐시 삭제: {}", deviceConfig.getDeviceId());
         deviceConfigRepository.save(deviceConfig);
     }
 
     @Transactional
-    @CacheEvict(value = "deviceConfigObj", key = "#deviceId")
+    @CacheEvict(value = "deviceConfigView", key = "#deviceId")
     public void deleteDeviceConfig(String deviceId) {
         DeviceConfig config = deviceConfigRepository.findByDeviceId(deviceId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DEVICE_NOT_FOUND));
@@ -129,7 +129,7 @@ public class DeviceConfigService {
      * 정상적으로 DB 값을 읽습니다.</p>
      */
     @Transactional
-    @CacheEvict(value = "deviceConfigObj", key = "#request.deviceId")
+    @CacheEvict(value = "deviceConfigView", key = "#request.deviceId")
     public DeviceRegisterResponseDto registerDevice(DeviceRegisterRequestDto request) {
         String deviceId = request.getDeviceId();
 
@@ -152,7 +152,7 @@ public class DeviceConfigService {
      * API 키 재발급 — 기존 키를 새 UUID로 교체하고 캐시를 무효화합니다.
      */
     @Transactional
-    @CacheEvict(value = "deviceConfigObj", key = "#deviceId")
+    @CacheEvict(value = "deviceConfigView", key = "#deviceId")
     public DeviceConfigResponseDto regenerateApiKey(String deviceId) {
         DeviceConfig config = deviceConfigRepository.findByDeviceId(deviceId)
                 .orElseThrow(() -> new CustomException(ErrorCode.DEVICE_NOT_FOUND));
