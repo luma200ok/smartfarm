@@ -20,5 +20,5 @@ public class DeviceComparisonDto {
     private Double avgTemperature;
     private Double avgMemUsage;
     private double tempThreshold;
-    private double humidityThreshold;
+    private double memUsageThreshold;
 }

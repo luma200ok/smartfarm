@@ -32,10 +32,10 @@ public class SensorService {
     @Value("${smartfarm.sensor.validation.temp-max}")
     private double tempMax;
 
-    @Value("${smartfarm.sensor.validation.humidity-min}")
+    @Value("${smartfarm.sensor.validation.mem-usage-min}")
     private double memUsageMin;
 
-    @Value("${smartfarm.sensor.validation.humidity-max}")
+    @Value("${smartfarm.sensor.validation.mem-usage-max}")
     private double memUsageMax;
 
     @Transactional
@@ -55,7 +55,7 @@ public class SensorService {
 
         // 4. 비즈니스 로직 (임계값 초과 여부 판단)
         boolean needCooling        = sensorData.getTemperature() >= config.getTemperatureThresholdHigh();
-        boolean needMemUsageControl = sensorData.getMemUsage()   >= config.getHumidityThresholdHigh();
+        boolean needMemUsageControl = sensorData.getMemUsage()   >= config.getMemUsageThresholdHigh();
 
         // 5. 경고 발생 시 자동 제어 명령 발송 + DB 이력 기록 + 디스코드 알림
         if (needCooling) {
@@ -71,7 +71,7 @@ public class SensorService {
 
         if (needMemUsageControl) {
             String message = String.format("현재 메모리 사용률: %.1f%%, 설정 기준치: %.1f%%",
-                                           sensorData.getMemUsage(), config.getHumidityThresholdHigh());
+                                           sensorData.getMemUsage(), config.getMemUsageThresholdHigh());
             log.warn("🚨 {} 메모리 사용률 경고! 히터 가동 명령 발행! ({})", sensorData.getDeviceId(), message);
 
             deviceControlService.sendAutoCommand(sensorData.getDeviceId(), "HEATER_ON");

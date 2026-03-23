@@ -15,6 +15,8 @@ public class DeviceConfigRequestDto {
     @Positive(message = "온도 임계값은 양수여야 합니다.")
     private double temperatureThresholdHigh;
 
-    @Positive(message = "습도 임계값은 양수여야 합니다.")
-    private double humidityThresholdHigh;
+    @Positive(message = "메모리 사용률 임계값은 양수여야 합니다.")
+    private double memUsageThresholdHigh;
+
+    private String discordWebhookUrl;
 }

@@ -110,7 +110,7 @@ public class DashboardService {
                             .avgTemperature(stats != null ? stats.getAvgTemperature() : null)
                             .avgMemUsage(stats != null ? stats.getAvgMemUsage() : null)
                             .tempThreshold(config.getTemperatureThresholdHigh())
-                            .humidityThreshold(config.getHumidityThresholdHigh())
+                            .memUsageThreshold(config.getMemUsageThresholdHigh())
                             .build();
                 })
                 .collect(Collectors.toList());

@@ -31,8 +31,8 @@ public class DeviceConfigService {
     @Value("${smartfarm.sensor.default-temp-threshold}")
     private double defaultTempThreshold;
 
-    @Value("${smartfarm.sensor.default-humidity-threshold}")
-    private double defaultHumidityThreshold;
+    @Value("${smartfarm.sensor.default-mem-usage-threshold}")
+    private double defaultMemUsageThreshold;
 
     @Cacheable(value = "deviceConfigObj", key = "#deviceId")
     public DeviceConfig getDeviceConfig(String deviceId) {
@@ -40,11 +40,11 @@ public class DeviceConfigService {
 
         return deviceConfigRepository.findByDeviceId(deviceId)
                 .orElseGet(() -> {
-                    log.info(">>> 등록된 기기 설정이 없어 기본 설정값을 반환합니다. (온도: {}, 습도: {})", defaultTempThreshold, defaultHumidityThreshold);
+                    log.info(">>> 등록된 기기 설정이 없어 기본 설정값을 반환합니다. (온도: {}, 메모리 사용률: {})", defaultTempThreshold, defaultMemUsageThreshold);
                     return DeviceConfig.builder()
                             .deviceId(deviceId)
                             .temperatureThresholdHigh(defaultTempThreshold)
-                            .humidityThresholdHigh(defaultHumidityThreshold)
+                            .memUsageThresholdHigh(defaultMemUsageThreshold)
                             .build();
                 });
     }
@@ -65,11 +65,12 @@ public class DeviceConfigService {
                 .orElse(DeviceConfig.builder()
                         .deviceId(request.getDeviceId())
                         .temperatureThresholdHigh(request.getTemperatureThresholdHigh())
-                        .humidityThresholdHigh(request.getHumidityThresholdHigh())
+                        .memUsageThresholdHigh(request.getMemUsageThresholdHigh())
                         .build());
 
         if (config.getId() != null) {
-            config.update(request.getTemperatureThresholdHigh(), request.getHumidityThresholdHigh());
+            config.update(request.getTemperatureThresholdHigh(), request.getMemUsageThresholdHigh(),
+                          request.getDiscordWebhookUrl());
         }
 
         return deviceConfigRepository.save(config);
@@ -130,7 +131,7 @@ public class DeviceConfigService {
         DeviceConfig config = DeviceConfig.builder()
                 .deviceId(deviceId)
                 .temperatureThresholdHigh(defaultTempThreshold)
-                .humidityThresholdHigh(defaultHumidityThreshold)
+                .memUsageThresholdHigh(defaultMemUsageThreshold)
                 .build();
 
         DeviceConfig saved = deviceConfigRepository.save(config); // @PrePersist 로 apiKey 자동 생성

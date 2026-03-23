@@ -28,10 +28,13 @@ public class DeviceConfig implements Serializable {
     private double temperatureThresholdHigh; // 고온 경보 임계치 (이 온도 이상이면 쿨링팬 가동)
 
     @Column(nullable = false)
-    private double humidityThresholdHigh; // 고습 경보 임계치 (추후 확장을 위해 미리 추가)
+    private double memUsageThresholdHigh; // 메모리 사용률 경보 임계치
 
     @Column(nullable = false, unique = true)
     private String apiKey; // PC 클라이언트 인증용 API 키 (UUID)
+
+    @Column(nullable = true)
+    private String discordWebhookUrl;
 
     /** 신규 등록 시 API 키 자동 생성 */
     @PrePersist
@@ -42,15 +45,20 @@ public class DeviceConfig implements Serializable {
     }
 
     @Builder
-    public DeviceConfig(String deviceId, double temperatureThresholdHigh, double humidityThresholdHigh) {
+    public DeviceConfig(String deviceId, double temperatureThresholdHigh, double memUsageThresholdHigh) {
         this.deviceId = deviceId;
         this.temperatureThresholdHigh = temperatureThresholdHigh;
-        this.humidityThresholdHigh = humidityThresholdHigh;
+        this.memUsageThresholdHigh = memUsageThresholdHigh;
     }
 
-    public void update(double temperatureThresholdHigh, double humidityThresholdHigh) {
+    public void update(double temperatureThresholdHigh, double memUsageThresholdHigh, String discordWebhookUrl) {
         this.temperatureThresholdHigh = temperatureThresholdHigh;
-        this.humidityThresholdHigh = humidityThresholdHigh;
+        this.memUsageThresholdHigh    = memUsageThresholdHigh;
+        this.discordWebhookUrl        = discordWebhookUrl;
+    }
+
+    public void setDiscordWebhookUrl(String discordWebhookUrl) {
+        this.discordWebhookUrl = discordWebhookUrl;
     }
 
     /** API 키 재발급 */

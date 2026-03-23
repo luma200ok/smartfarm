@@ -251,7 +251,7 @@
         .stat-max .value { color: #f87171; }
         .stat-min .value { color: #60a5fa; }
         .stat-avg .value { color: #facc15; }
-        .stat-humidity .value { color: #34d399; }
+        .stat-mem-usage .value { color: #34d399; }
 
         /* 그래프 영역 */
         .charts-grid {
@@ -748,8 +748,12 @@
             <input type="number" id="configTempThreshold" step="0.1" min="0" max="150">
         </div>
         <div class="modal-field">
-            <label>고습 임계값 (%)</label>
-            <input type="number" id="configHumidityThreshold" step="0.1" min="0" max="100">
+            <label>메모리 사용률 임계값 (%)</label>
+            <input type="number" id="configMemUsageThreshold" step="0.1" min="0" max="100">
+        </div>
+        <div class="modal-field">
+            <label>Discord 웹훅 URL (기기별, 미입력 시 전역 설정 사용)</label>
+            <input type="text" id="configDiscordWebhookUrl" placeholder="https://discord.com/api/webhooks/...">
         </div>
         <div class="modal-field">
             <label>API 키 <span style="font-size:0.7rem; color:#64748b; font-weight:400;">(PC 클라이언트 인증용)</span></label>
@@ -808,9 +812,9 @@
             <div class="value" id="avgTemp">--</div>
             <div class="unit">°C</div>
         </div>
-        <div class="stat-card stat-humidity">
-            <div class="label">평균 습도</div>
-            <div class="value" id="avgHumidity">--</div>
+        <div class="stat-card stat-mem-usage">
+            <div class="label">평균 메모리 사용률</div>
+            <div class="value" id="avgMemUsage">--</div>
             <div class="unit">%</div>
         </div>
     </div>
@@ -829,10 +833,10 @@
         <div class="chart-card">
             <h3>
                 <span style="background:#34d399;"></span>
-                실시간 습도 (%)
+                실시간 메모리 사용률 (%)
             </h3>
             <div class="chart-container">
-                <canvas id="humidityChart"></canvas>
+                <canvas id="memUsageChart"></canvas>
             </div>
         </div>
     </div>
@@ -1015,7 +1019,7 @@
     // ─── 상태 관리 ───────────────────────────────────────────────
     let currentDeviceId = '';
     let temperatureChart = null;
-    let humidityChart = null;
+    let memUsageChart = null;
     const MAX_DATA_POINTS = 20;
     let alertBadgeCount = 0;
 
@@ -1077,19 +1081,19 @@
 
             temperatureChart.data.labels = [];
             temperatureChart.data.datasets[0].data = [];
-            humidityChart.data.labels = [];
-            humidityChart.data.datasets[0].data = [];
+            memUsageChart.data.labels = [];
+            memUsageChart.data.datasets[0].data = [];
 
             items.forEach(item => {
                 const label = formatTime(item.timestamp);
                 temperatureChart.data.labels.push(label);
                 temperatureChart.data.datasets[0].data.push(item.temperature.toFixed(1));
-                humidityChart.data.labels.push(label);
-                humidityChart.data.datasets[0].data.push(item.memUsage.toFixed(1));
+                memUsageChart.data.labels.push(label);
+                memUsageChart.data.datasets[0].data.push(item.memUsage.toFixed(1));
             });
 
             temperatureChart.update();
-            humidityChart.update();
+            memUsageChart.update();
         } catch (e) {
             console.error('히스토리 로드 실패:', e);
         }
@@ -1116,11 +1120,11 @@
         }
     }
 
-    function setStatValues(max, min, avg, humidity) {
+    function setStatValues(max, min, avg, memUsage) {
         document.getElementById('maxTemp').textContent = max;
         document.getElementById('minTemp').textContent = min;
         document.getElementById('avgTemp').textContent = avg;
-        document.getElementById('avgHumidity').textContent = humidity;
+        document.getElementById('avgMemUsage').textContent = memUsage;
     }
 
     // ─── 이벤트 로그 로드 ────────────────────────────────────────
@@ -1316,7 +1320,7 @@
                 const min  = d.minTemperature  != null ? d.minTemperature.toFixed(1)  : '-';
                 const hum  = d.avgMemUsage     != null ? d.avgMemUsage.toFixed(1)     : '-';
                 const tempOk = d.avgTemperature != null && d.avgTemperature < d.tempThreshold;
-                const humOk  = d.avgMemUsage    != null && d.avgMemUsage    < d.humidityThreshold;
+                const humOk  = d.avgMemUsage    != null && d.avgMemUsage    < d.memUsageThreshold;
                 const statusColor = (tempOk && humOk) ? '#34d399' : '#f87171';
                 const statusText  = (tempOk && humOk) ? '정상'    : '경보';
                 return `<tr>
@@ -1325,7 +1329,7 @@
                     <td style="padding:10px 14px; text-align:center; color:#fb923c;">${max} °C</td>
                     <td style="padding:10px 14px; text-align:center; color:#60a5fa;">${min} °C</td>
                     <td style="padding:10px 14px; text-align:center; color:#34d399;">${hum} %</td>
-                    <td style="padding:10px 14px; text-align:center; color:#94a3b8;">${d.tempThreshold} °C / ${d.humidityThreshold} %</td>
+                    <td style="padding:10px 14px; text-align:center; color:#94a3b8;">${d.tempThreshold} °C / ${d.memUsageThreshold} %</td>
                     <td style="padding:10px 14px; text-align:center;"><span style="color:${statusColor}; font-weight:600;">${statusText}</span></td>
                 </tr>`;
             }).join('');
@@ -1567,13 +1571,13 @@
         }
         temperatureChart.update();
 
-        humidityChart.data.labels.push(label);
-        humidityChart.data.datasets[0].data.push(parseFloat(data.memUsage).toFixed(1));
-        if (humidityChart.data.labels.length > MAX_DATA_POINTS) {
-            humidityChart.data.labels.shift();
-            humidityChart.data.datasets[0].data.shift();
+        memUsageChart.data.labels.push(label);
+        memUsageChart.data.datasets[0].data.push(parseFloat(data.memUsage).toFixed(1));
+        if (memUsageChart.data.labels.length > MAX_DATA_POINTS) {
+            memUsageChart.data.labels.shift();
+            memUsageChart.data.datasets[0].data.shift();
         }
-        humidityChart.update();
+        memUsageChart.update();
     }
 
     // ─── 알림 뱃지 ───────────────────────────────────────────────
@@ -1684,7 +1688,8 @@
             if (res.ok) {
                 const data = await res.json();
                 document.getElementById('configTempThreshold').value = data.temperatureThresholdHigh;
-                document.getElementById('configHumidityThreshold').value = data.humidityThresholdHigh;
+                document.getElementById('configMemUsageThreshold').value = data.memUsageThresholdHigh;
+                document.getElementById('configDiscordWebhookUrl').value = data.discordWebhookUrl || '';
                 document.getElementById('configApiKey').value = data.apiKey ?? '(미등록 기기 — 저장 후 발급됩니다)';
             }
         } catch (e) { /* 기본값 유지 */ }
@@ -1734,7 +1739,7 @@
     async function saveConfig() {
         const deviceId = document.getElementById('configDeviceId').value;
         const tempThreshold = parseFloat(document.getElementById('configTempThreshold').value);
-        const humidityThreshold = parseFloat(document.getElementById('configHumidityThreshold').value);
+        const memUsageThreshold = parseFloat(document.getElementById('configMemUsageThreshold').value);
         const msgEl = document.getElementById('configMessage');
 
         try {
@@ -1744,7 +1749,8 @@
                 body: JSON.stringify({
                     deviceId,
                     temperatureThresholdHigh: tempThreshold,
-                    humidityThresholdHigh: humidityThreshold
+                    memUsageThresholdHigh: memUsageThreshold,
+                    discordWebhookUrl: document.getElementById('configDiscordWebhookUrl').value || null
                 })
             });
             if (res.ok) {
@@ -1769,7 +1775,7 @@
     // ─── 초기화 ──────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
         temperatureChart = createChart('temperatureChart', '온도 (°C)', '#f87171');
-        humidityChart = createChart('humidityChart', '습도 (%)', '#34d399');
+        memUsageChart = createChart('memUsageChart', '메모리 사용률 (%)', '#34d399');
 
         // 내보내기 날짜 기본값: 오늘
         const today = new Date().toISOString().slice(0, 10);
