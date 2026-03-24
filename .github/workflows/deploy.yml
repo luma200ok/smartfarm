@@ -88,15 +88,14 @@ jobs:
             fi
 
             # 4. 타겟 포트에 새 서버 실행 (환경 변수와 함께)
-            export DB_HOST=$DB_HOST
-            export DB_USERNAME=$DB_USERNAME
-            export DB_PASSWORD=$DB_PASSWORD
-            export REDIS_HOST=$REDIS_HOST
-            export REDIS_PORT=$REDIS_PORT
-
             nohup java -jar \
             -Dspring.profiles.active=prod \
             -Dserver.port=${TARGET_PORT} \
+            -Dspring.datasource.url="jdbc:mysql://${DB_HOST}:3306/smartfarm?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&rewriteBatchedStatements=true" \
+            -Dspring.datasource.username="${DB_USERNAME}" \
+            -Dspring.datasource.password="${DB_PASSWORD}" \
+            -Dspring.data.redis.host="${REDIS_HOST}" \
+            -Dspring.data.redis.port="${REDIS_PORT}" \
             $JAR_PATH > nohup.out 2>&1 &
 
             # 5. Health Check
