@@ -19,6 +19,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate # 운영에서는 절대 데이터베이스 구조를 임의로 변경하지 않도록 방어합니다.
+      dialect: org.hibernate.dialect.MySQL8Dialect # MySQL 8.0+ 방언 명시
     show-sql: false    # 운영에서는 로그가 너무 많이 쌓이므로 SQL 출력을 끕니다.
     properties:
       hibernate:
