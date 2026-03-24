@@ -33,6 +33,8 @@ public class SecurityConfig {
             .addFilterBefore(deviceApiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/login", "/api/sensor/**").permitAll()
+                // 배포 헬스 체크 엔드포인트 (무중단 배포용)
+                .requestMatchers("/api/health").permitAll()
                 // 신규 기기 자동 등록 — API 키 없는 상태에서 최초 1회 호출 (인증 불필요)
                 .requestMatchers("/api/device/register").permitAll()
                 // PC 클라이언트 전용 엔드포인트 — Spring Security는 허용, DeviceApiKeyAuthFilter가 API 키 검증
@@ -60,6 +62,7 @@ public class SecurityConfig {
                 // 브라우저에서 호출하는 /api/device-control/command, /api/device-config/** 등은 CSRF 보호 유지
                 .ignoringRequestMatchers(
                         "/api/sensor/**",
+                        "/api/health",
                         "/api/device/register",
                         "/api/device-control/pending",
                         "/api/device-control/ack",
