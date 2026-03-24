@@ -88,14 +88,15 @@ jobs:
             fi
 
             # 4. 타겟 포트에 새 서버 실행 (환경 변수와 함께)
+            export DB_HOST=$DB_HOST
+            export DB_USERNAME=$DB_USERNAME
+            export DB_PASSWORD=$DB_PASSWORD
+            export REDIS_HOST=$REDIS_HOST
+            export REDIS_PORT=$REDIS_PORT
+
             nohup java -jar \
             -Dspring.profiles.active=prod \
             -Dserver.port=${TARGET_PORT} \
-            -DDB_HOST="$DB_HOST" \
-            -DDB_USERNAME="$DB_USERNAME" \
-            -DDB_PASSWORD="$DB_PASSWORD" \
-            -DREDIS_HOST="$REDIS_HOST" \
-            -DREDIS_PORT="$REDIS_PORT" \
             $JAR_PATH > nohup.out 2>&1 &
 
             # 5. Health Check
