@@ -36,10 +36,17 @@ jobs:
 
       - name: 6. EC2에 접속해서 기존 서버 내리고 새 서버 실행 (SSH)
         uses: appleboy/ssh-action@master
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DB_HOST,DB_USERNAME,DB_PASSWORD,REDIS_HOST,REDIS_PORT
           script: |
             cd /home/ec2-user/smartfarm
 
@@ -73,12 +80,6 @@ jobs:
             fi
 
             # 4. 타겟 포트에 새 서버 실행
-            export DB_HOST="${{ secrets.DB_HOST }}"
-            export DB_USERNAME="${{ secrets.DB_USERNAME }}"
-            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            export REDIS_HOST="${{ secrets.REDIS_HOST }}"
-            export REDIS_PORT="${{ secrets.REDIS_PORT }}"
-
             nohup java -jar \
             -Dspring.profiles.active=prod \
             -Dserver.port=${TARGET_PORT} \
