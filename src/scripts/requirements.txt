@@ -1,0 +1,5 @@
+# 센서 에이전트 필수 패키지
+psutil>=5.9.0       # CPU/메모리 사용률 수집
+requests>=2.28.0    # HTTP 통신
+sseclient-py>=1.7   # Server-Sent Events 수신
+python-dotenv>=0.20.0 # .env 파일 관리

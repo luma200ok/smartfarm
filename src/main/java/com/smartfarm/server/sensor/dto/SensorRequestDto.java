@@ -2,6 +2,7 @@ package com.smartfarm.server.sensor.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.smartfarm.server.sensor.entity.SensorData;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,6 +28,7 @@ public class SensorRequestDto {
     // application.yaml의 값을 @Value로 동적으로 주입받아 사용할 수 없습니다.
     // 대신 Service 계층에서 커스텀 검증 로직을 통해 yaml 설정값으로 유효성 검사를 수행하도록 변경합니다.
     @JsonProperty("cpu_temperature")
+    @Schema(description = "CPU 온도(°C) 또는 CPU 사용률(%). EC2 환경에서는 온도 센서가 없으므로 CPU 사용률(%)을 전송합니다.", example = "45.5")
     private double cpuTemperature;
     
     // JSON의 스네이크 케이스("mem_usage")를 카멜 케이스 필드명에 매핑합니다.

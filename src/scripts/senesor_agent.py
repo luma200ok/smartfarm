@@ -16,11 +16,10 @@ from dotenv import load_dotenv, set_key
 ENV_FILE    = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=ENV_FILE)
 
-MAC_IP      = os.getenv("MAC_IP")
 DEVICE_ID   = os.getenv("DEVICE_ID")   # .env 에서 읽거나 기본값 사용
 API_KEY     = os.getenv("API_KEY", "")                   # 최초에는 빈 문자열
 
-BASE_URL        = f"http://{MAC_IP}:8080"
+BASE_URL        = "http://smartfarm.rkqkdrnportfolio.shop"
 REGISTER_URL    = f"{BASE_URL}/api/device/register"
 SENSOR_URL      = f"{BASE_URL}/api/sensor/data"
 SSE_URL         = f"{BASE_URL}/api/sse/device-command-stream?deviceId={DEVICE_ID}"
@@ -198,25 +197,18 @@ def flush_pending_commands():
 # ─────────────────────────────────────────────────────────────────────────────
 
 def get_pc_status() -> dict:
-    """윈도우 시스템의 실제 상태를 가져옵니다."""
-    cpu_temp = 0.0
-    if hasattr(psutil, "sensors_temperatures"):
-        temps = psutil.sensors_temperatures()
-        if temps:
-            for name, entries in temps.items():
-                if entries:
-                    cpu_temp = entries[0].current
-                    break
+    """시스템의 CPU 사용률과 메모리 사용률을 가져옵니다.
 
-    if cpu_temp == 0.0:
-        cpu_usage = psutil.cpu_percent(interval=1)
-        cpu_temp  = 40.0 + (cpu_usage * 0.5)
+    주의: EC2 환경에서는 CPU 온도 센서가 없으므로 cpu_temperature에 CPU 사용률(%)을 전송합니다.
+    """
+    cpu_usage = psutil.cpu_percent(interval=1)
+    mem_usage = psutil.virtual_memory().percent
 
     return {
-        "deviceId":        DEVICE_ID,
-        "cpu_temperature": round(cpu_temp, 1),
-        "mem_usage":       psutil.virtual_memory().percent,
-        "timestamp":       int(time.time() * 1000),
+        "deviceId":         DEVICE_ID,
+        "cpu_temperature":  round(cpu_usage, 1),  # EC2: CPU 사용률(%) / PC: 온도(°C)
+        "mem_usage":        round(mem_usage, 1),
+        "timestamp":        int(time.time() * 1000),
     }
 
 
@@ -238,7 +230,7 @@ def run_sensor_loop():
             else:
                 body = response.json()
                 print(f"[{time.strftime('%H:%M:%S')}] ✅ 전송 완료 "
-                      f"(온도: {data['cpu_temperature']}°C, 메모리: {data['mem_usage']}%)")
+                      f"(CPU: {data['cpu_temperature']}%, 메모리: {data['mem_usage']}%)")
                 print(f"  └─ 서버 상태: {body.get('status')} - {body.get('message')}")
 
         except requests.exceptions.RequestException as e:
