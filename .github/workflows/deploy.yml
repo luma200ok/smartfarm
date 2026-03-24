@@ -88,6 +88,9 @@ jobs:
             fi
 
             # 4. 타겟 포트에 새 서버 실행 (환경 변수와 함께)
+            echo "🔧 Java 명령어:"
+            echo "nohup java -jar -Dspring.profiles.active=prod -Dserver.port=${TARGET_PORT} -Dspring.datasource.url=\"jdbc:mysql://${DB_HOST}:3306/smartfarm?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&rewriteBatchedStatements=true\" -Dspring.datasource.username=\"${DB_USERNAME}\" -Dspring.datasource.password=\"***\" -Dspring.data.redis.host=\"${REDIS_HOST}\" -Dspring.data.redis.port=\"${REDIS_PORT}\" $JAR_PATH"
+
             nohup java -jar \
             -Dspring.profiles.active=prod \
             -Dserver.port=${TARGET_PORT} \
@@ -100,6 +103,9 @@ jobs:
 
             # 5. Health Check
             echo "> 새 서버가 켜질 때까지 기다립니다..."
+            sleep 3
+            echo "📋 서버 시작 초기 로그 (처음 20줄):"
+            head -20 nohup.out
 
             for RETRY_COUNT in {1..10}
             do
