@@ -41,7 +41,6 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: DB_HOST,DB_USERNAME,DB_PASSWORD,REDIS_HOST,REDIS_PORT
-          env_format: export {0}={1}
           script: |
             cd /home/ec2-user/smartfarm
 
