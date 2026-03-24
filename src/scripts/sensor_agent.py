@@ -199,14 +199,18 @@ def flush_pending_commands():
 def get_pc_status() -> dict:
     """시스템의 CPU 사용률과 메모리 사용률을 가져옵니다.
 
-    주의: EC2 환경에서는 CPU 온도 센서가 없으므로 cpu_temperature에 CPU 사용률(%)을 전송합니다.
+    주의: EC2 환경에서는 CPU 온도 센서가 없으므로 CPU 사용률을 온도 범위(20~100°C)로 맵핑합니다.
+    맵핑: CPU 0% = 20°C, CPU 100% = 100°C
     """
     cpu_usage = psutil.cpu_percent(interval=1)
     mem_usage = psutil.virtual_memory().percent
 
+    # CPU 사용률을 온도 범위로 맵핑 (0% → 20°C, 100% → 100°C)
+    mapped_temperature = 20 + (cpu_usage * 0.8)
+
     return {
         "deviceId":         DEVICE_ID,
-        "cpu_temperature":  round(cpu_usage, 1),  # EC2: CPU 사용률(%) / PC: 온도(°C)
+        "cpu_temperature":  round(mapped_temperature, 1),  # EC2: CPU 사용률을 온도로 맵핑
         "mem_usage":        round(mem_usage, 1),
         "timestamp":        int(time.time() * 1000),
     }

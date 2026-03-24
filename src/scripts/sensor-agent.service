@@ -8,12 +8,11 @@ Type=simple
 User=ec2-user
 WorkingDirectory=/home/ec2-user/smartfarm-sensor-agent
 Environment="PATH=/usr/local/bin:/usr/bin"
-ExecStart=/usr/bin/python3 sensor_agent.py
+ExecStart=/usr/bin/python3 -u sensor_agent.py
 Restart=on-failure
 RestartSec=10
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=sensor-agent
+StandardOutput=append:/var/log/smartfarm-sensor-agent.log
+StandardError=append:/var/log/smartfarm-sensor-agent.log
 
 [Install]
 WantedBy=multi-user.target

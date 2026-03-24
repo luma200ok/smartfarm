@@ -50,7 +50,7 @@ echo ""
 # 3. 파일 업로드
 echo "[3/5] 파일 업로드 (scp)..."
 scp -i "$EC2_KEY" -q \
-    "$SCRIPT_DIR/senesor_agent.py" \
+    "$SCRIPT_DIR/sensor_agent.py" \
     "$SCRIPT_DIR/requirements.txt" \
     "$SCRIPT_DIR/.env.example" \
     "$SCRIPT_DIR/sensor-agent.service" \
@@ -99,7 +99,7 @@ echo ""
 echo "1️⃣  수동 테스트 (선택사항):"
 echo "   ssh -i '$EC2_KEY' $EC2_USER@$EC2_HOST"
 echo "   cd /home/$EC2_USER/smartfarm-sensor-agent"
-echo "   python3 senesor_agent.py"
+echo "   python3 sensor_agent.py"
 echo ""
 echo "2️⃣  systemd 서비스 설치:"
 echo "   ssh -i '$EC2_KEY' $EC2_USER@$EC2_HOST"
