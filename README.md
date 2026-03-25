@@ -11,7 +11,11 @@
 
 🔗 **Swagger API**: [http://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html](http://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html)
 
+🔗 **Discord Webhook**:[https://discord.gg/pqgNN33HwY](https://discord.gg/pqgNN33HwY)
 
+🧪 **테스트 계정**
+┣ ID: admin
+┣ PW: admin1234
 <br>
 
 ## 🛠️ Tech Stack & Architecture
@@ -161,7 +165,7 @@
 ./gradlew bootRun
 ```
 
-### 테스트 계정 (로컬 전용)
+### 테스트 계정
 애플리케이션 최초 시작 시 자동 생성됩니다.
 
 | 항목 | 값 |
