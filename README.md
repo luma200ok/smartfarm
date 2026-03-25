@@ -6,6 +6,12 @@
 >
 > Server-Sent Events(SSE) 기반 실시간 푸시, 1분 단위 배치 집계, Discord 알림까지 실제 운영 환경을 고려한 아키텍처를 구축했습니다.
 
+
+🔗 **실제 서비스 접속해 보기:** [http://smartfarm.rkqkdrnportfolio.shop/](http://smartfarm.rkqkdrnportfolio.shop/)
+
+🔗 **Swagger API**: [http://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html](http://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html)
+
+
 <br>
 
 ## 🛠️ Tech Stack & Architecture
@@ -21,38 +27,8 @@
 
 ### System Architecture
 
-```
-기기 (PC / IoT Sensor)
-   │  POST /api/sensor/data  (3초마다)
-   ▼
-┌─────────────────────────────────────┐
-│            SensorService            │
-│  ① 유효성 검사 (yaml 설정 기반)        │
-│  ② Redis 저장 (임시 버퍼)            │
-│  ③ 기기별 임계값 조회 (Redis Cache)   │
-│  ④ 임계값 초과 시 역제어 판정         │
-│     ├─ ControlEventLog 기록         │
-│     ├─ Discord Webhook 알림         │
-│     └─ SSE 실시간 푸시              │
-└─────────────────────────────────────┘
-   │  @Scheduled — 1분마다
-   ▼
-┌─────────────────────────────────────┐
-│          DataBatchService           │
-│  ① Redis 전체 데이터 수집            │
-│  ② deviceId별 온도·습도 평균 계산    │
-│  ③ SensorHistory (MySQL) 저장      │
-│  ④ Redis 데이터 삭제 (메모리 해제)   │
-└─────────────────────────────────────┘
-   │
-   ▼
-┌─────────────────────────────────────┐
-│       Dashboard / Export            │
-│  • 이력 조회 (페이징, 날짜 필터)      │
-│  • 오늘 통계 (최고·최저·평균)         │
-│  • CSV / Excel 내보내기             │
-└─────────────────────────────────────┘
-```
+![smartfarm_architecture.png](docs/images/smartfarm_architecture.png)
+
 
 * **Redis:** 3초마다 쏟아지는 센서 데이터를 메모리에 임시 버퍼링하여 DB 쓰기 부하 차단
 * **MySQL:** 1분 평균값만 영구 저장하여 스토리지 효율 극대화
