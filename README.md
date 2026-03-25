@@ -18,6 +18,16 @@
 ┣ PW: admin1234
 <br>
 
+## 📋 목차
+
+- [Tech Stack & Architecture](#️-tech-stack--architecture)
+- [주요 기술적 의사결정 및 트러블슈팅](#-주요-기술적-의사결정-및-트러블-슈팅)
+- [API 엔드포인트](#-api-엔드포인트)
+- [실행 방법](#️-실행-방법)
+- [예외 처리](#-예외-처리)
+
+<br>
+
 ## 🛠️ Tech Stack & Architecture
 
 ### Tech Stack
@@ -153,7 +163,7 @@
 ### 사전 요구사항
 * Java 21
 * MySQL — `localhost:3306` / DB: `smartfarm`
-* Redis — `localhost:6380`
+* Redis — `localhost:6379` (운영) / `localhost:6380` (로컬, `application-local.yaml` 기본값)
 
 ### 환경변수
 | 변수 | 설명 |
@@ -189,4 +199,4 @@
 
 ---
 
-최근 업데이트 2026.03.25 -README V1.0.0
+최근 업데이트 2026.03.25 — README V1.0.0
