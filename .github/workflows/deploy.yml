@@ -42,11 +42,12 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DB_HOST,DB_USERNAME,DB_PASSWORD,REDIS_HOST,REDIS_PORT
+          envs: DB_HOST,DB_USERNAME,DB_PASSWORD,REDIS_HOST,REDIS_PORT,DISCORD_WEBHOOK_URL
           script: |
             cd /home/ec2-user/smartfarm
 
@@ -90,6 +91,7 @@ jobs:
             export REDIS_PORT="$5"
             export TARGET_PORT="$6"
             export JAR_PATH="$7"
+            export DISCORD_WEBHOOK_URL="$8"
 
             cd /home/ec2-user/smartfarm
 
@@ -101,11 +103,12 @@ jobs:
             -Dspring.datasource.password="${DB_PASSWORD}" \
             -Dspring.data.redis.host="${REDIS_HOST}" \
             -Dspring.data.redis.port="${REDIS_PORT}" \
+            -Dsmartfarm.notification.discord-webhook-url="${DISCORD_WEBHOOK_URL}" \
             ${JAR_PATH} > nohup.out 2>&1 &
             DEPLOY_SCRIPT
 
             chmod +x /tmp/run_server.sh
-            /tmp/run_server.sh "${DB_HOST}" "${DB_USERNAME}" "${DB_PASSWORD}" "${REDIS_HOST}" "${REDIS_PORT}" "${TARGET_PORT}" "${JAR_PATH}"
+            /tmp/run_server.sh "${DB_HOST}" "${DB_USERNAME}" "${DB_PASSWORD}" "${REDIS_HOST}" "${REDIS_PORT}" "${TARGET_PORT}" "${JAR_PATH}" "${DISCORD_WEBHOOK_URL}"
 
             # 5. Health Check
             echo "> 새 서버가 켜질 때까지 기다립니다..."
