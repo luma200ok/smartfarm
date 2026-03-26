@@ -48,6 +48,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: DB_HOST,DB_USERNAME,DB_PASSWORD,REDIS_HOST,REDIS_PORT,DISCORD_WEBHOOK_URL
+          command_timeout: 5m
           script: |
             cd /home/ec2-user/smartfarm
 
@@ -104,7 +105,7 @@ jobs:
             -Dspring.data.redis.host="${REDIS_HOST}" \
             -Dspring.data.redis.port="${REDIS_PORT}" \
             -Dsmartfarm.notification.discord-webhook-url="${DISCORD_WEBHOOK_URL}" \
-            ${JAR_PATH} > nohup.out 2>&1 &
+            ${JAR_PATH} > /home/ec2-user/smartfarm/app-${TARGET_PORT}.log 2>&1 &
             DEPLOY_SCRIPT
 
             chmod +x /tmp/run_server.sh
@@ -112,9 +113,9 @@ jobs:
 
             # 5. Health Check
             echo "> 새 서버가 켜질 때까지 기다립니다..."
-            sleep 3
+            sleep 20
             echo "📋 서버 시작 초기 로그 (처음 20줄):"
-            head -20 nohup.out
+            head -20 /home/ec2-user/smartfarm/app-${TARGET_PORT}.log
 
             for RETRY_COUNT in {1..10}
             do
@@ -145,7 +146,7 @@ jobs:
             # 서버 로그 확인 (디버깅용)
             echo ""
             echo "📋 서버 시작 로그 (마지막 30줄):"
-            tail -30 nohup.out
+            tail -30 /home/ec2-user/smartfarm/app-${TARGET_PORT}.log
             echo ""
 
             sudo lsof -ti:${TARGET_PORT} | xargs -r sudo kill -9
