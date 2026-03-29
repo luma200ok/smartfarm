@@ -81,8 +81,7 @@ jobs:
               sudo kill -9 ${TARGET_PID}
             fi
 
-            # 4. 타겟 포트에 새 서버 실행 (환경 변수와 함께)
-            # 임시 배포 스크립트 생성 (환경 변수 제대로 전달하기 위해)
+            # 4. 타겟 포트에 새 서버 실행 (환경 변수로 전달 → ps aux 비밀번호 노출 방지)
             cat > /tmp/run_server.sh << 'DEPLOY_SCRIPT'
             #!/bin/bash
             export DB_HOST="$1"
@@ -90,22 +89,15 @@ jobs:
             export DB_PASSWORD="$3"
             export REDIS_HOST="$4"
             export REDIS_PORT="$5"
-            export TARGET_PORT="$6"
-            export JAR_PATH="$7"
+            export SERVER_PORT="$6"
             export DISCORD_WEBHOOK_URL="$8"
 
             cd /home/ec2-user/smartfarm
 
             nohup java -jar \
             -Dspring.profiles.active=prod \
-            -Dserver.port=${TARGET_PORT} \
-            -Dspring.datasource.url="jdbc:mysql://${DB_HOST}:3306/smartfarm?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&rewriteBatchedStatements=true" \
-            -Dspring.datasource.username="${DB_USERNAME}" \
-            -Dspring.datasource.password="${DB_PASSWORD}" \
-            -Dspring.data.redis.host="${REDIS_HOST}" \
-            -Dspring.data.redis.port="${REDIS_PORT}" \
-            -Dsmartfarm.notification.discord-webhook-url="${DISCORD_WEBHOOK_URL}" \
-            ${JAR_PATH} > /home/ec2-user/smartfarm/app-${TARGET_PORT}.log 2>&1 &
+            -Dserver.port=${SERVER_PORT} \
+            "$7" > /home/ec2-user/smartfarm/app-$6.log 2>&1 &
             DEPLOY_SCRIPT
 
             chmod +x /tmp/run_server.sh
