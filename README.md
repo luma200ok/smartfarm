@@ -11,7 +11,7 @@
 
 🔗 **Swagger API**: [http://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html](http://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html)
 
-🔗 **Discord Webhook**:[https://discord.gg/pqgNN33HwY](https://discord.gg/pqgNN33HwY)
+🔗 **Discord Webhook**:[https://discord.gg/a9VhVFbqnR](https://discord.gg/a9VhVFbqnR)
 
 🧪 **테스트 계정**
 ┣ ID: admin
