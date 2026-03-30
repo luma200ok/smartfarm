@@ -1,4 +1,7 @@
 # 공통(Default) 설정 파일
+server:
+  forward-headers-strategy: native
+
 spring:
   application:
     name: smartfarm_server
