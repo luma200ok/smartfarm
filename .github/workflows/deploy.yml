@@ -34,6 +34,16 @@ jobs:
           target: "/home/ec2-user/smartfarm"
           strip_components: 2
 
+      - name: 5-1. Python 센서 에이전트 파일을 EC2로 전송 (SCP)
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "src/scripts/sensor_agent.py,src/scripts/requirements.txt,src/scripts/sensor-agent.service"
+          target: "/home/ec2-user/smartfarm-sensor-agent"
+          strip_components: 2
+
       - name: 6. EC2에 접속해서 기존 서버 내리고 새 서버 실행 (SSH)
         uses: appleboy/ssh-action@master
         env:
@@ -129,6 +139,27 @@ jobs:
                 fi
 
                 echo "> 🚀 무중단 배포 완료!"
+
+                # Python 센서 에이전트 서비스 등록 및 재시작
+                echo ""
+                echo "======================================"
+                echo "> 🐍 Python 센서 에이전트 배포 시작"
+                echo "======================================"
+
+                # 패키지 설치
+                pip3 install -q -r /home/ec2-user/smartfarm-sensor-agent/requirements.txt
+
+                # systemd 서비스 등록 (최초 1회 또는 변경 시 갱신)
+                sudo cp /home/ec2-user/smartfarm-sensor-agent/sensor-agent.service /etc/systemd/system/smartfarm-sensor-agent.service
+                sudo systemctl daemon-reload
+                sudo systemctl enable smartfarm-sensor-agent
+
+                # 서비스 재시작 (이미 실행 중이면 reload, 아니면 start)
+                sudo systemctl restart smartfarm-sensor-agent
+                sleep 3
+                sudo systemctl status smartfarm-sensor-agent --no-pager -l
+
+                echo "> 🐍 센서 에이전트 배포 완료! (크래시 시 자동 재시작 활성화)"
                 exit 0
               fi
             done
