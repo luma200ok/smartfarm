@@ -19,7 +19,7 @@ load_dotenv(dotenv_path=ENV_FILE)
 DEVICE_ID   = os.getenv("DEVICE_ID")   # .env 에서 읽거나 기본값 사용
 API_KEY     = os.getenv("API_KEY", "")                   # 최초에는 빈 문자열
 
-BASE_URL        = "http://smartfarm.rkqkdrnportfolio.shop"
+BASE_URL        = "https://smartfarm.rkqkdrnportfolio.shop"
 REGISTER_URL    = f"{BASE_URL}/api/device/register"
 SENSOR_URL      = f"{BASE_URL}/api/sensor/data"
 SSE_URL         = f"{BASE_URL}/api/sse/device-command-stream?deviceId={DEVICE_ID}"
