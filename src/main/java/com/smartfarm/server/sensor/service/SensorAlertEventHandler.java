@@ -24,6 +24,9 @@ public class SensorAlertEventHandler {
     private final SseEmitterService sseEmitterService;
 
     public void handle(SensorAlert alert) {
+        // SSE 실시간 푸시는 경고 여부와 관계없이 항상 전송
+        sendSsePush(alert);
+
         if (!alert.hasAlert()) {
             log.debug("경고 없음: {}", alert.getDeviceId());
             return;
