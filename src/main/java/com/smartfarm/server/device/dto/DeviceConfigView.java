@@ -11,7 +11,9 @@ import com.smartfarm.server.device.entity.DeviceConfig;
 public record DeviceConfigView(
         String deviceId,
         Double temperatureThresholdHigh,
-        Double memUsageThresholdHigh,
+        Double temperatureThresholdLow,
+        Double humidityThresholdHigh,
+        Double humidityThresholdLow,
         String apiKey,
         String discordWebhookUrl
 ) {
@@ -20,13 +22,15 @@ public record DeviceConfigView(
      * {@link DeviceConfig} 엔티티와 전역 기본값으로부터 뷰 객체를 생성합니다.
      * null 임계값은 전역 기본값으로 채워집니다.
      */
-    public static DeviceConfigView from(DeviceConfig entity, double defaultTemp, double defaultMem) {
+    public static DeviceConfigView from(DeviceConfig entity,
+                                        double defaultTempHigh, double defaultTempLow,
+                                        double defaultHumidityHigh, double defaultHumidityLow) {
         return new DeviceConfigView(
                 entity.getDeviceId(),
-                entity.getTemperatureThresholdHigh() != null
-                        ? entity.getTemperatureThresholdHigh() : defaultTemp,
-                entity.getMemUsageThresholdHigh() != null
-                        ? entity.getMemUsageThresholdHigh() : defaultMem,
+                entity.getTemperatureThresholdHigh() != null ? entity.getTemperatureThresholdHigh() : defaultTempHigh,
+                entity.getTemperatureThresholdLow()  != null ? entity.getTemperatureThresholdLow()  : defaultTempLow,
+                entity.getHumidityThresholdHigh()    != null ? entity.getHumidityThresholdHigh()    : defaultHumidityHigh,
+                entity.getHumidityThresholdLow()     != null ? entity.getHumidityThresholdLow()     : defaultHumidityLow,
                 entity.getApiKey(),
                 entity.getDiscordWebhookUrl()
         );

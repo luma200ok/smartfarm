@@ -27,7 +27,7 @@ public class SensorHistory {
     private double temperature;
 
     @Column(nullable = false)
-    private double memUsage;
+    private double humidity;
 
     @Column(nullable = false)
     private LocalDateTime timestamp;
@@ -36,10 +36,10 @@ public class SensorHistory {
     private LocalDateTime deletedAt;
 
     @Builder
-    public SensorHistory(String deviceId, double temperature, double memUsage, LocalDateTime timestamp) {
+    public SensorHistory(String deviceId, double temperature, double humidity, LocalDateTime timestamp) {
         this.deviceId = deviceId;
         this.temperature = temperature;
-        this.memUsage = memUsage;
+        this.humidity = humidity;
         this.timestamp = timestamp;
     }
 }

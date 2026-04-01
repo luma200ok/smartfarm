@@ -35,7 +35,7 @@ public class SensorHistoryRepositoryCustomImpl implements SensorHistoryRepositor
                         sensorHistory.temperature.max(),
                         sensorHistory.temperature.min(),
                         sensorHistory.temperature.avg(),
-                        sensorHistory.memUsage.avg()
+                        sensorHistory.humidity.avg()
                 ))
                 .from(sensorHistory)
                 .where(
@@ -57,7 +57,7 @@ public class SensorHistoryRepositoryCustomImpl implements SensorHistoryRepositor
                         sensorHistory.temperature.max(),
                         sensorHistory.temperature.min(),
                         sensorHistory.temperature.avg(),
-                        sensorHistory.memUsage.avg()
+                        sensorHistory.humidity.avg()
                 ))
                 .from(sensorHistory)
                 .where(
@@ -87,7 +87,7 @@ public class SensorHistoryRepositoryCustomImpl implements SensorHistoryRepositor
                         sensorHistory.temperature.avg(),
                         sensorHistory.temperature.max(),
                         sensorHistory.temperature.min(),
-                        sensorHistory.memUsage.avg(),
+                        sensorHistory.humidity.avg(),
                         sensorHistory.count()
                 ))
                 .from(sensorHistory)

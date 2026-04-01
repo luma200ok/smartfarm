@@ -18,15 +18,21 @@ public class DeviceRegisterResponseDto {
     private String apiKey;
 
     private double temperatureThresholdHigh;
-    private double memUsageThresholdHigh;
+    private double temperatureThresholdLow;
+    private double humidityThresholdHigh;
+    private double humidityThresholdLow;
     private String message;
 
-    public static DeviceRegisterResponseDto from(DeviceConfig config, double globalTempThreshold, double globalMemUsageThreshold) {
+    public static DeviceRegisterResponseDto from(DeviceConfig config,
+                                                 double globalTempHigh, double globalTempLow,
+                                                 double globalHumidityHigh, double globalHumidityLow) {
         return DeviceRegisterResponseDto.builder()
                 .deviceId(config.getDeviceId())
                 .apiKey(config.getApiKey())
-                .temperatureThresholdHigh(globalTempThreshold)
-                .memUsageThresholdHigh(globalMemUsageThreshold)
+                .temperatureThresholdHigh(globalTempHigh)
+                .temperatureThresholdLow(globalTempLow)
+                .humidityThresholdHigh(globalHumidityHigh)
+                .humidityThresholdLow(globalHumidityLow)
                 .message("기기 등록 완료. API 키를 .env 파일에 저장하세요. 재조회 불가 — 분실 시 대시보드에서 재발급하세요.")
                 .build();
     }

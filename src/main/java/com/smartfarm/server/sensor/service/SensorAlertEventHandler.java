@@ -23,10 +23,6 @@ public class SensorAlertEventHandler {
     private final DiscordNotificationService discordNotificationService;
     private final SseEmitterService sseEmitterService;
 
-    /**
-     * 센서 경고 이벤트 처리
-     * @param alert 센서 경고 상태
-     */
     public void handle(SensorAlert alert) {
         if (!alert.hasAlert()) {
             log.debug("경고 없음: {}", alert.getDeviceId());
@@ -35,46 +31,36 @@ public class SensorAlertEventHandler {
 
         String deviceId = alert.getDeviceId();
 
-        // 1. 쿨링팬 경고 처리
-        if (alert.hasCoolingAlert()) {
-            handleCoolingAlert(deviceId, alert.getCoolingMessage());
+        // 1. 쿨링팬 제어
+        if (alert.isCoolingFanOn()) {
+            deviceControlService.sendAutoCommand(deviceId, "COOLING_FAN_ON");
+            String msg = String.format("🚨 **[스마트팜 경고] %s 쿨링팬 가동!**\n%s", deviceId, alert.getCoolingMessage());
+            discordNotificationService.sendAlertIfNotCoolingDown(deviceId, "TEMP_HIGH", msg);
+        } else if (alert.isCoolingFanOff()) {
+            deviceControlService.sendAutoCommand(deviceId, "COOLING_FAN_OFF");
         }
 
-        // 2. 히터 경고 처리
-        if (alert.hasHeatingAlert()) {
-            handleHeatingAlert(deviceId, alert.getHeatingMessage());
+        // 2. 가습기 제어
+        if (alert.isHumidifierOn()) {
+            deviceControlService.sendAutoCommand(deviceId, "HUMIDIFIER_ON");
+            String msg = String.format("💧 **[스마트팜 경고] %s 가습기 가동!**\n%s", deviceId, alert.getHumidifierMessage());
+            discordNotificationService.sendAlertIfNotCoolingDown(deviceId, "HUMIDITY_HIGH", msg);
+        } else if (alert.isHumidifierOff()) {
+            deviceControlService.sendAutoCommand(deviceId, "HUMIDIFIER_OFF");
         }
 
         // 3. 실시간 SSE 푸시
         sendSsePush(alert);
     }
 
-    private void handleCoolingAlert(String deviceId, String message) {
-        // 자동 제어 명령 발송
-        deviceControlService.sendAutoCommand(deviceId, "COOLING_FAN_ON");
-
-        // Discord 알림
-        String discordMsg = String.format("🚨 **[스마트팜 경고] %s 쿨링팬 가동!**\n%s", deviceId, message);
-        discordNotificationService.sendAlertIfNotCoolingDown(deviceId, "TEMP", discordMsg);
-    }
-
-    private void handleHeatingAlert(String deviceId, String message) {
-        // 자동 제어 명령 발송
-        deviceControlService.sendAutoCommand(deviceId, "HEATER_ON");
-
-        // Discord 알림
-        String discordMsg = String.format("💧 **[스마트팜 경고] %s 히터 가동!**\n%s", deviceId, message);
-        discordNotificationService.sendAlertIfNotCoolingDown(deviceId, "HUMIDITY", discordMsg);
-    }
-
     private void sendSsePush(SensorAlert alert) {
         SsePayloadDto payload = SsePayloadDto.builder()
                 .deviceId(alert.getDeviceId())
                 .temperature(alert.getSensorData().getTemperature())
-                .memUsage(alert.getSensorData().getMemUsage())
+                .humidity(alert.getSensorData().getHumidity())
                 .timestamp(alert.getSensorData().getTimestamp())
                 .coolingFanOn(alert.isCoolingFanOn())
-                .heaterOn(alert.isHeaterOn())
+                .humidifierOn(alert.isHumidifierOn())
                 .build();
 
         sseEmitterService.sendToDevice(alert.getDeviceId(), payload);

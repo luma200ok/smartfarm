@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 센서 데이터 유효성 검사 담당
- * - 온도, 메모리 사용률 범위 검증 (YAML 설정 기반)
+ * - 온도, 습도 범위 검증 (YAML 설정 기반)
  */
 @Slf4j
 @Component
@@ -23,20 +23,15 @@ public class SensorValidator {
     @Value("${smartfarm.sensor.validation.temp-max}")
     private double tempMax;
 
-    @Value("${smartfarm.sensor.validation.mem-usage-min}")
-    private double memUsageMin;
+    @Value("${smartfarm.sensor.validation.humidity-min}")
+    private double humidityMin;
 
-    @Value("${smartfarm.sensor.validation.mem-usage-max}")
-    private double memUsageMax;
+    @Value("${smartfarm.sensor.validation.humidity-max}")
+    private double humidityMax;
 
-    /**
-     * 센서 요청 데이터 유효성 검사
-     * @param requestDto 센서 요청 DTO
-     * @throws CustomException 검증 실패 시
-     */
     public void validate(SensorRequestDto requestDto) {
         validateTemperature(requestDto.getCpuTemperature());
-        validateMemUsage(requestDto.getMemUsage());
+        validateHumidity(requestDto.getHumidity());
     }
 
     private void validateTemperature(double temperature) {
@@ -47,11 +42,11 @@ public class SensorValidator {
         }
     }
 
-    private void validateMemUsage(double memUsage) {
-        if (memUsage < memUsageMin || memUsage > memUsageMax) {
+    private void validateHumidity(double humidity) {
+        if (humidity < humidityMin || humidity > humidityMax) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE,
-                    String.format("메모리 사용률은 %.1f%%에서 %.1f%% 사이여야 합니다. (입력값: %.1f)",
-                            memUsageMin, memUsageMax, memUsage));
+                    String.format("습도는 %.1f%%에서 %.1f%% 사이여야 합니다. (입력값: %.1f)",
+                            humidityMin, humidityMax, humidity));
         }
     }
 }

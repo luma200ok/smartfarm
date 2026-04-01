@@ -12,5 +12,5 @@ public class SensorResponseDto {
     private String status;      // "SUCCESS", "ERROR" 등
     private String message;     // 상세 메시지
     private boolean coolingFanOn; // 쿨링 팬 가동 여부 (역제어 명령)
-    private boolean heaterOn;     // 히터 가동 여부 (역제어 명령)
+    private boolean humidifierOn; // 가습기 가동 여부
 }

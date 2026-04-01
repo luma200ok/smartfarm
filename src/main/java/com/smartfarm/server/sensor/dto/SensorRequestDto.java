@@ -32,8 +32,8 @@ public class SensorRequestDto {
     private double cpuTemperature;
     
     // JSON의 스네이크 케이스("mem_usage")를 카멜 케이스 필드명에 매핑합니다.
-    @JsonProperty("mem_usage")
-    private double memUsage;
+    @JsonProperty("humidity")
+    private double humidity;
     
     private long timestamp;
 
@@ -49,8 +49,8 @@ public class SensorRequestDto {
 
         return SensorData.builder()
                 .deviceId(this.deviceId)
-                .temperature(this.cpuTemperature) // Entity의 필드명 변경 반영
-                .memUsage(this.memUsage)          // Entity의 필드명 변경 반영
+                .temperature(this.cpuTemperature)
+                .humidity(this.humidity)
                 .timestamp(convertedTimestamp)
                 .build();
     }

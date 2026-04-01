@@ -17,5 +17,5 @@ public class SensorStatisticsDto {
     private double maxTemperature;
     private double minTemperature;
     private double avgTemperature;
-    private double avgMemUsage;
+    private double avgHumidity;
 }

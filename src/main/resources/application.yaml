@@ -5,27 +5,28 @@ server:
 spring:
   application:
     name: smartfarm_server
-  
+
   # 기본으로 활성화할 프로파일 (local 환경을 기본으로 띄웁니다)
   profiles:
     active: local
 
 # ---------------------------------------------------------
 # 커스텀 설정 (Custom Properties)
-# 앱 내에서 사용할 하드코딩된 숫자들을 설정 파일로 뺐습니다.
 # ---------------------------------------------------------
 smartfarm:
   sensor:
-    # DB에 설정값이 없을 때 사용할 기본 온도/메모리 사용률 임계치
-    default-temp-threshold: 60.0
-    default-mem-usage-threshold: 60.0
+    # DB에 설정값이 없을 때 사용할 기본 임계치
+    default-temp-threshold-high: 26.0      # 온도 상한 (쿨링팬 ON)
+    default-temp-threshold-low: 20.0       # 온도 하한 (쿨링팬 OFF)
+    default-humidity-threshold-high: 70.0  # 습도 상한 (가습기 ON)
+    default-humidity-threshold-low: 40.0   # 습도 하한 (가습기 OFF)
 
     # 데이터 유효성 검사를 위한 범위 설정
     validation:
       temp-min: -50.0
       temp-max: 150.0
-      mem-usage-min: 0.0
-      mem-usage-max: 100.0
+      humidity-min: 0.0
+      humidity-max: 100.0
 
   batch:
     # 1분(60000ms) 단위 스케줄링 간격
@@ -34,7 +35,6 @@ smartfarm:
     report-cron: "0 0 0 * * *"
 
   notification:
-    # 디스코드 웹훅 URL 설정 (실무에서는 이 부분을 application-prod.yaml로 빼고 환경변수 처리하는 것이 안전합니다)
     # 환경변수 DISCORD_WEBHOOK_URL에서 주입 (미설정 시 빈 문자열)
     discord-webhook-url: ${DISCORD_WEBHOOK_URL:}
     # 같은 기기/같은 종류 알림 재발송 금지 대기 시간 (초). 기본 2분

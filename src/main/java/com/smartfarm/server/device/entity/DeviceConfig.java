@@ -28,7 +28,13 @@ public class DeviceConfig implements Serializable {
     private Double temperatureThresholdHigh; // 고온 경보 임계치 (null = 전역 yaml 기본값 사용)
 
     @Column(nullable = true)
-    private Double memUsageThresholdHigh; // 메모리 사용률 경보 임계치 (null = 전역 yaml 기본값 사용)
+    private Double temperatureThresholdLow; // 저온 쿨링팬 OFF 임계치
+
+    @Column(nullable = true)
+    private Double humidityThresholdHigh; // 고습 가습기 ON 임계치
+
+    @Column(nullable = true)
+    private Double humidityThresholdLow; // 저습 가습기 OFF 임계치
 
     @Column(nullable = false, unique = true)
     private String apiKey; // PC 클라이언트 인증용 API 키 (UUID)
@@ -45,15 +51,21 @@ public class DeviceConfig implements Serializable {
     }
 
     @Builder
-    public DeviceConfig(String deviceId, Double temperatureThresholdHigh, Double memUsageThresholdHigh) {
+    public DeviceConfig(String deviceId, Double temperatureThresholdHigh, Double temperatureThresholdLow,
+                        Double humidityThresholdHigh, Double humidityThresholdLow) {
         this.deviceId = deviceId;
         this.temperatureThresholdHigh = temperatureThresholdHigh;
-        this.memUsageThresholdHigh = memUsageThresholdHigh;
+        this.temperatureThresholdLow  = temperatureThresholdLow;
+        this.humidityThresholdHigh    = humidityThresholdHigh;
+        this.humidityThresholdLow     = humidityThresholdLow;
     }
 
-    public void update(Double temperatureThresholdHigh, Double memUsageThresholdHigh, String discordWebhookUrl) {
+    public void update(Double temperatureThresholdHigh, Double temperatureThresholdLow,
+                       Double humidityThresholdHigh, Double humidityThresholdLow, String discordWebhookUrl) {
         this.temperatureThresholdHigh = temperatureThresholdHigh;
-        this.memUsageThresholdHigh    = memUsageThresholdHigh;
+        this.temperatureThresholdLow  = temperatureThresholdLow;
+        this.humidityThresholdHigh    = humidityThresholdHigh;
+        this.humidityThresholdLow     = humidityThresholdLow;
         this.discordWebhookUrl        = discordWebhookUrl;
     }
 
@@ -61,8 +73,16 @@ public class DeviceConfig implements Serializable {
         this.temperatureThresholdHigh = temperatureThresholdHigh;
     }
 
-    public void setMemUsageThresholdHigh(Double memUsageThresholdHigh) {
-        this.memUsageThresholdHigh = memUsageThresholdHigh;
+    public void setTemperatureThresholdLow(Double temperatureThresholdLow) {
+        this.temperatureThresholdLow = temperatureThresholdLow;
+    }
+
+    public void setHumidityThresholdHigh(Double humidityThresholdHigh) {
+        this.humidityThresholdHigh = humidityThresholdHigh;
+    }
+
+    public void setHumidityThresholdLow(Double humidityThresholdLow) {
+        this.humidityThresholdLow = humidityThresholdLow;
     }
 
     public void setDiscordWebhookUrl(String discordWebhookUrl) {

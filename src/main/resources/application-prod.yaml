@@ -29,14 +29,16 @@ spring:
 # 커스텀 설정 (application.yaml에서 상속하면서 필요한 부분 명시)
 smartfarm:
   sensor:
-    default-temp-threshold: 60.0
-    default-mem-usage-threshold: 60.0
+    default-temp-threshold-high: 26.0
+    default-temp-threshold-low: 20.0
+    default-humidity-threshold-high: 70.0
+    default-humidity-threshold-low: 40.0
 
     validation:
       temp-min: -50.0
       temp-max: 150.0
-      mem-usage-min: 0.0
-      mem-usage-max: 100.0
+      humidity-min: 0.0
+      humidity-max: 100.0
 
   batch:
     interval-ms: 60000

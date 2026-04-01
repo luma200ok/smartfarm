@@ -20,10 +20,10 @@
 
 ## 📋 목차
 
-- [Tech Stack & Architecture](#️-tech-stack--architecture)
+- [Tech Stack & Architecture](#-tech-stack--architecture)
 - [주요 기술적 의사결정 및 트러블슈팅](#-주요-기술적-의사결정-및-트러블-슈팅)
 - [API 엔드포인트](#-api-엔드포인트)
-- [실행 방법](#️-실행-방법)
+- [실행 방법](#-실행-방법)
 - [예외 처리](#-예외-처리)
 
 <br>

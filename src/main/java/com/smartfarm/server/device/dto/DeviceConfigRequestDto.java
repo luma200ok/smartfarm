@@ -12,8 +12,9 @@ public class DeviceConfigRequestDto {
     private String deviceId;
 
     private Double temperatureThresholdHigh;
-
-    private Double memUsageThresholdHigh;
+    private Double temperatureThresholdLow;
+    private Double humidityThresholdHigh;
+    private Double humidityThresholdLow;
 
     private String discordWebhookUrl;
 }

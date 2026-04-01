@@ -70,8 +70,8 @@ public class DataBatchService {
                         .average()
                         .orElse(0.0);
 
-                double avgMemUsage = deviceDataList.stream()
-                        .mapToDouble(SensorData::getMemUsage)
+                double avgHumidity = deviceDataList.stream()
+                        .mapToDouble(SensorData::getHumidity)
                         .average()
                         .orElse(0.0);
 
@@ -82,7 +82,7 @@ public class DataBatchService {
                 SensorHistory averageHistory = SensorHistory.builder()
                         .deviceId(deviceId)
                         .temperature(Math.round(avgTemperature * 10.0) / 10.0) // 소수점 첫째 자리까지만 남김
-                        .memUsage(Math.round(avgMemUsage * 10.0) / 10.0)
+                        .humidity(Math.round(avgHumidity * 10.0) / 10.0)
                         .timestamp(now)
                         .build();
 
@@ -133,12 +133,12 @@ public class DataBatchService {
             sb.append(String.format(
                     "\n🖥️ **%s**\n" +
                     "  🌡️ 온도  최고: %.1f°C  최저: %.1f°C  평균: %.1f°C\n" +
-                    "  💧 평균 메모리: %.1f%%\n",
+                    "  💧 평균 습도: %.1f%%\n",
                     deviceId,
                     stats.getMaxTemperature(),
                     stats.getMinTemperature(),
                     stats.getAvgTemperature(),
-                    stats.getAvgMemUsage()
+                    stats.getAvgHumidity()
             ));
         }
 

@@ -29,15 +29,14 @@ public class ExportService {
         response.setContentType("text/csv; charset=UTF-8");
         response.setHeader("Content-Disposition",
                 "attachment; filename=\"" + deviceId + "_export.csv\"");
-        // UTF-8 BOM: Excel에서 한글 깨짐 방지
         response.getOutputStream().write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
 
         PrintWriter writer = response.getWriter();
-        writer.println("ID,기기ID,온도(°C),메모리사용률(%),측정시각");
+        writer.println("ID,기기ID,온도(°C),습도(%),측정시각");
         for (SensorHistory h : rows) {
             writer.printf("%d,%s,%.1f,%.1f,%s%n",
                     h.getId(), h.getDeviceId(),
-                    h.getTemperature(), h.getMemUsage(),
+                    h.getTemperature(), h.getHumidity(),
                     h.getTimestamp().toString());
         }
     }
@@ -56,7 +55,7 @@ public class ExportService {
             Sheet sheet = wb.createSheet("센서 이력");
 
             Row header = sheet.createRow(0);
-            String[] cols = {"ID", "기기ID", "온도(°C)", "메모리사용률(%)", "측정시각"};
+            String[] cols = {"ID", "기기ID", "온도(°C)", "습도(%)", "측정시각"};
             for (int i = 0; i < cols.length; i++) {
                 header.createCell(i).setCellValue(cols[i]);
             }
@@ -67,7 +66,7 @@ public class ExportService {
                 row.createCell(0).setCellValue(h.getId());
                 row.createCell(1).setCellValue(h.getDeviceId());
                 row.createCell(2).setCellValue(h.getTemperature());
-                row.createCell(3).setCellValue(h.getMemUsage());
+                row.createCell(3).setCellValue(h.getHumidity());
                 row.createCell(4).setCellValue(h.getTimestamp().toString());
             }
 

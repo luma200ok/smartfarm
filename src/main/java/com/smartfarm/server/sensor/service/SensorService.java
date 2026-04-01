@@ -52,7 +52,7 @@ public class SensorService {
                 .status("SUCCESS")
                 .message("Data processed successfully")
                 .coolingFanOn(alert.isCoolingFanOn())
-                .heaterOn(alert.isHeaterOn())
+                .humidifierOn(alert.isHumidifierOn())
                 .build();
     }
 }

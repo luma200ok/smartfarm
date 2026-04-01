@@ -337,7 +337,7 @@
         }
 
         .event-COOLING_FAN_ON { background: #1e3a5f; color: #60a5fa; }
-        .event-HEATER_ON { background: #3f1515; color: #f87171; }
+        .event-HUMIDIFIER_ON { background: #0a2e1e; color: #34d399; }
         .event-default { background: #2d2d2d; color: #94a3b8; }
 
         .log-empty {
@@ -744,20 +744,40 @@
             <input type="text" id="configDeviceId" readonly style="color:#64748b; cursor:not-allowed;">
         </div>
         <div class="modal-field">
-            <label>고온 임계값 (°C) <span id="globalTempHint" style="font-size:0.72rem; color:#94a3b8; font-weight:400;"></span></label>
+            <label>고온 임계값 (°C) <span id="globalTempHighHint" style="font-size:0.72rem; color:#94a3b8; font-weight:400;"></span></label>
             <div style="display:flex; gap:6px; align-items:center;">
-                <input type="number" id="configTempThreshold" step="0.1" min="0" max="150" style="flex:1;">
-                <button type="button" onclick="resetTempThreshold()" title="전역 기본값으로 초기화"
+                <input type="number" id="configTempThresholdHigh" step="0.1" min="-50" max="150" style="flex:1;">
+                <button type="button" onclick="resetThreshold('configTempThresholdHigh')" title="전역 기본값으로 초기화"
                         style="padding:6px 10px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#94a3b8; cursor:pointer; font-size:0.78rem; white-space:nowrap;">
                     초기화
                 </button>
             </div>
         </div>
         <div class="modal-field">
-            <label>메모리 사용률 임계값 (%) <span id="globalMemHint" style="font-size:0.72rem; color:#94a3b8; font-weight:400;"></span></label>
+            <label>저온 임계값 (°C) <span id="globalTempLowHint" style="font-size:0.72rem; color:#94a3b8; font-weight:400;"></span></label>
             <div style="display:flex; gap:6px; align-items:center;">
-                <input type="number" id="configMemUsageThreshold" step="0.1" min="0" max="100" style="flex:1;">
-                <button type="button" onclick="resetMemThreshold()" title="전역 기본값으로 초기화"
+                <input type="number" id="configTempThresholdLow" step="0.1" min="-50" max="150" style="flex:1;">
+                <button type="button" onclick="resetThreshold('configTempThresholdLow')" title="전역 기본값으로 초기화"
+                        style="padding:6px 10px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#94a3b8; cursor:pointer; font-size:0.78rem; white-space:nowrap;">
+                    초기화
+                </button>
+            </div>
+        </div>
+        <div class="modal-field">
+            <label>고습 임계값 (%) <span id="globalHumidityHighHint" style="font-size:0.72rem; color:#94a3b8; font-weight:400;"></span></label>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <input type="number" id="configHumidityThresholdHigh" step="0.1" min="0" max="100" style="flex:1;">
+                <button type="button" onclick="resetThreshold('configHumidityThresholdHigh')" title="전역 기본값으로 초기화"
+                        style="padding:6px 10px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#94a3b8; cursor:pointer; font-size:0.78rem; white-space:nowrap;">
+                    초기화
+                </button>
+            </div>
+        </div>
+        <div class="modal-field">
+            <label>저습 임계값 (%) <span id="globalHumidityLowHint" style="font-size:0.72rem; color:#94a3b8; font-weight:400;"></span></label>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <input type="number" id="configHumidityThresholdLow" step="0.1" min="0" max="100" style="flex:1;">
+                <button type="button" onclick="resetThreshold('configHumidityThresholdLow')" title="전역 기본값으로 초기화"
                         style="padding:6px 10px; background:#1e293b; border:1px solid #475569; border-radius:6px; color:#94a3b8; cursor:pointer; font-size:0.78rem; white-space:nowrap;">
                     초기화
                 </button>
@@ -825,8 +845,8 @@
             <div class="unit">°C</div>
         </div>
         <div class="stat-card stat-mem-usage">
-            <div class="label">평균 메모리 사용률</div>
-            <div class="value" id="avgMemUsage">--</div>
+            <div class="label">평균 습도</div>
+            <div class="value" id="avgHumidity">--</div>
             <div class="unit">%</div>
         </div>
     </div>
@@ -845,10 +865,10 @@
         <div class="chart-card">
             <h3>
                 <span style="background:#34d399;"></span>
-                실시간 메모리 사용률 (%)
+                실시간 습도 (%)
             </h3>
             <div class="chart-container">
-                <canvas id="memUsageChart"></canvas>
+                <canvas id="humidityChart"></canvas>
             </div>
         </div>
     </div>
@@ -991,14 +1011,14 @@
                 </div>
                 <div class="ctrl-status" id="coolingStatus"></div>
             </div>
-            <!-- 히터 -->
+            <!-- 가습기 -->
             <div class="ctrl-device-box">
-                <div class="ctrl-device-label" style="color:#f87171;">&#128293; 히터</div>
+                <div class="ctrl-device-label" style="color:#34d399;">&#128167; 가습기</div>
                 <div class="ctrl-btn-row">
-                    <button class="ctrl-btn ctrl-on"  id="btnHeaterOn"  onclick="sendControl('HEATER_ON')">켜기 ON</button>
-                    <button class="ctrl-btn ctrl-off" id="btnHeaterOff" onclick="sendControl('HEATER_OFF')">끄기 OFF</button>
+                    <button class="ctrl-btn ctrl-on"  id="btnHumidifierOn"  onclick="sendControl('HUMIDIFIER_ON')">켜기 ON</button>
+                    <button class="ctrl-btn ctrl-off" id="btnHumidifierOff" onclick="sendControl('HUMIDIFIER_OFF')">끄기 OFF</button>
                 </div>
-                <div class="ctrl-status" id="heaterStatus"></div>
+                <div class="ctrl-status" id="humidifierStatus"></div>
             </div>
         </div>
         <!-- 최근 제어 명령 이력 -->
@@ -1010,7 +1030,7 @@
     <!-- 제어 이벤트 로그 테이블 -->
     <div class="log-card" id="section-eventlog">
         <div class="section-header">
-            <h3>&#9889; 제어 이벤트 로그 (쿨링팬 / 히터 가동 이력)</h3>
+            <h3>&#9889; 제어 이벤트 로그 (쿨링팬 / 가습기 가동 이력)</h3>
             <button class="refresh-btn" onclick="loadEventLogs()">새로 고침</button>
         </div>
         <div id="eventLogContainer">
@@ -1031,7 +1051,7 @@
     // ─── 상태 관리 ───────────────────────────────────────────────
     let currentDeviceId = '';
     let temperatureChart = null;
-    let memUsageChart = null;
+    let humidityChart = null;
     const MAX_DATA_POINTS = 20;
     let alertBadgeCount = 0;
 
@@ -1093,19 +1113,19 @@
 
             temperatureChart.data.labels = [];
             temperatureChart.data.datasets[0].data = [];
-            memUsageChart.data.labels = [];
-            memUsageChart.data.datasets[0].data = [];
+            humidityChart.data.labels = [];
+            humidityChart.data.datasets[0].data = [];
 
             items.forEach(item => {
                 const label = formatTime(item.timestamp);
                 temperatureChart.data.labels.push(label);
                 temperatureChart.data.datasets[0].data.push(item.temperature.toFixed(1));
-                memUsageChart.data.labels.push(label);
-                memUsageChart.data.datasets[0].data.push(item.memUsage.toFixed(1));
+                humidityChart.data.labels.push(label);
+                humidityChart.data.datasets[0].data.push(item.humidity.toFixed(1));
             });
 
             temperatureChart.update();
-            memUsageChart.update();
+            humidityChart.update();
         } catch (e) {
             console.error('히스토리 로드 실패:', e);
         }
@@ -1125,18 +1145,18 @@
                 data.maxTemperature.toFixed(1),
                 data.minTemperature.toFixed(1),
                 data.avgTemperature.toFixed(1),
-                data.avgMemUsage.toFixed(1)
+                data.avgHumidity.toFixed(1)
             );
         } catch (e) {
             console.error('통계 로드 실패:', e);
         }
     }
 
-    function setStatValues(max, min, avg, memUsage) {
+    function setStatValues(max, min, avg, humidity) {
         document.getElementById('maxTemp').textContent = max;
         document.getElementById('minTemp').textContent = min;
         document.getElementById('avgTemp').textContent = avg;
-        document.getElementById('avgMemUsage').textContent = memUsage;
+        document.getElementById('avgHumidity').textContent = humidity;
     }
 
     // ─── 이벤트 로그 로드 ────────────────────────────────────────
@@ -1158,7 +1178,7 @@
 
             const rows = items.map(item => {
                 const badgeClass = item.eventType === 'COOLING_FAN_ON' ? 'event-COOLING_FAN_ON'
-                    : item.eventType === 'HEATER_ON' ? 'event-HEATER_ON'
+                    : item.eventType.includes('HUMIDIFIER') ? 'event-HUMIDIFIER_ON'
                     : 'event-default';
                 return `
                     <tr>
@@ -1244,7 +1264,7 @@
             const avgTemp = data.map(d => d.avgTemperature ? +d.avgTemperature.toFixed(1) : null);
             const maxTemp = data.map(d => d.maxTemperature ? +d.maxTemperature.toFixed(1) : null);
             const minTemp = data.map(d => d.minTemperature ? +d.minTemperature.toFixed(1) : null);
-            const avgHumid = data.map(d => d.avgMemUsage   ? +d.avgMemUsage.toFixed(1)   : null);
+            const avgHumid = data.map(d => d.avgHumidity   ? +d.avgHumidity.toFixed(1)   : null);
 
             const chartDefaults = {
                 responsive: true, maintainAspectRatio: false,
@@ -1330,9 +1350,9 @@
                 const avg  = d.avgTemperature  != null ? d.avgTemperature.toFixed(1)  : '-';
                 const max  = d.maxTemperature  != null ? d.maxTemperature.toFixed(1)  : '-';
                 const min  = d.minTemperature  != null ? d.minTemperature.toFixed(1)  : '-';
-                const hum  = d.avgMemUsage     != null ? d.avgMemUsage.toFixed(1)     : '-';
-                const tempOk = d.avgTemperature != null && d.avgTemperature < d.tempThreshold;
-                const humOk  = d.avgMemUsage    != null && d.avgMemUsage    < d.memUsageThreshold;
+                const hum  = d.avgHumidity     != null ? d.avgHumidity.toFixed(1)     : '-';
+                const tempOk = d.avgTemperature != null && d.avgTemperature < d.tempThresholdHigh;
+                const humOk  = d.avgHumidity    != null && d.avgHumidity    < d.humidityThresholdHigh;
                 const statusColor = (tempOk && humOk) ? '#34d399' : '#f87171';
                 const statusText  = (tempOk && humOk) ? '정상'    : '경보';
                 return `<tr>
@@ -1341,7 +1361,7 @@
                     <td style="padding:10px 14px; text-align:center; color:#fb923c;">${max} °C</td>
                     <td style="padding:10px 14px; text-align:center; color:#60a5fa;">${min} °C</td>
                     <td style="padding:10px 14px; text-align:center; color:#34d399;">${hum} %</td>
-                    <td style="padding:10px 14px; text-align:center; color:#94a3b8;">${d.tempThreshold} °C / ${d.memUsageThreshold} %</td>
+                    <td style="padding:10px 14px; text-align:center; color:#94a3b8;">${d.tempThresholdHigh} °C / ${d.humidityThresholdHigh} %</td>
                     <td style="padding:10px 14px; text-align:center;"><span style="color:${statusColor}; font-weight:600;">${statusText}</span></td>
                 </tr>`;
             }).join('');
@@ -1372,15 +1392,15 @@
     const CTRL_LABELS = {
         COOLING_FAN_ON:  '쿨링팬 켜기',
         COOLING_FAN_OFF: '쿨링팬 끄기',
-        HEATER_ON:       '히터 켜기',
-        HEATER_OFF:      '히터 끄기'
+        HUMIDIFIER_ON:   '가습기 켜기',
+        HUMIDIFIER_OFF:  '가습기 끄기'
     };
 
     const CTRL_BTN_IDS = {
         COOLING_FAN_ON:  'btnCoolingOn',
         COOLING_FAN_OFF: 'btnCoolingOff',
-        HEATER_ON:       'btnHeaterOn',
-        HEATER_OFF:      'btnHeaterOff'
+        HUMIDIFIER_ON:   'btnHumidifierOn',
+        HUMIDIFIER_OFF:  'btnHumidifierOff'
     };
 
     async function sendControl(commandType) {
@@ -1400,7 +1420,7 @@
             });
             if (res.ok) {
                 const data = await res.json();
-                const statusElId = commandType.startsWith('COOLING') ? 'coolingStatus' : 'heaterStatus';
+                const statusElId = commandType.startsWith('COOLING') ? 'coolingStatus' : 'humidifierStatus';
                 const statusEl   = document.getElementById(statusElId);
                 if (statusEl) {
                     statusEl.innerHTML =
@@ -1443,7 +1463,7 @@
                 const ackTime     = item.acknowledgedAt
                     ? ` <span style="color:#64748b; font-size:0.75rem;">(ACK: ${formatDateTime(item.acknowledgedAt)})</span>`
                     : '';
-                const typeClass = item.commandType.includes('COOLING') ? 'event-COOLING_FAN_ON' : 'event-HEATER_ON';
+                const typeClass = item.commandType.includes('COOLING') ? 'event-COOLING_FAN_ON' : 'event-HUMIDIFIER_ON';
                 return `<tr>
                     <td>${formatDateTime(item.createdAt)}</td>
                     <td><span class="event-badge ${typeClass}">${item.commandType}</span></td>
@@ -1556,7 +1576,7 @@
             document.getElementById('lastUpdated').textContent =
                 `마지막 갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
             // 임계값 초과 알림(쿨링팬 또는 히터 가동) 발생 시 뱃지 증가
-            if (data.coolingFanOn || data.heaterOn) {
+            if (data.coolingFanOn || data.humidifierOn) {
                 incrementAlertBadge();
             }
         });
@@ -1583,13 +1603,13 @@
         }
         temperatureChart.update();
 
-        memUsageChart.data.labels.push(label);
-        memUsageChart.data.datasets[0].data.push(parseFloat(data.memUsage).toFixed(1));
-        if (memUsageChart.data.labels.length > MAX_DATA_POINTS) {
-            memUsageChart.data.labels.shift();
-            memUsageChart.data.datasets[0].data.shift();
+        humidityChart.data.labels.push(label);
+        humidityChart.data.datasets[0].data.push(parseFloat(data.humidity).toFixed(1));
+        if (humidityChart.data.labels.length > MAX_DATA_POINTS) {
+            humidityChart.data.labels.shift();
+            humidityChart.data.datasets[0].data.shift();
         }
-        memUsageChart.update();
+        humidityChart.update();
     }
 
     // ─── 알림 뱃지 ───────────────────────────────────────────────
@@ -1654,7 +1674,7 @@
         loadComparison();
         loadControlHistory();
         // 기기 변경 시 제어 상태 및 알림 뱃지 초기화
-        ['coolingStatus', 'heaterStatus'].forEach(id => {
+        ['coolingStatus', 'humidifierStatus'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.textContent = '';
         });
@@ -1700,13 +1720,19 @@
             if (res.ok) {
                 const data = await res.json();
                 // 전역 기본값을 hint로 표시
-                document.getElementById('globalTempHint').textContent = `(전역 기본값: ${data.globalTempThreshold}°C)`;
-                document.getElementById('globalMemHint').textContent  = `(전역 기본값: ${data.globalMemUsageThreshold}%)`;
+                document.getElementById('globalTempHighHint').textContent     = `(전역: ${data.globalTempThresholdHigh}°C)`;
+                document.getElementById('globalTempLowHint').textContent      = `(전역: ${data.globalTempThresholdLow}°C)`;
+                document.getElementById('globalHumidityHighHint').textContent = `(전역: ${data.globalHumidityThresholdHigh}%)`;
+                document.getElementById('globalHumidityLowHint').textContent  = `(전역: ${data.globalHumidityThresholdLow}%)`;
                 // 기기별 오버라이드가 있으면 표시, null이면 빈 값 (placeholder가 전역 기본값 안내)
-                document.getElementById('configTempThreshold').value = data.temperatureThresholdHigh ?? '';
-                document.getElementById('configTempThreshold').placeholder = `비우면 전역 기본값 (${data.globalTempThreshold}°C) 사용`;
-                document.getElementById('configMemUsageThreshold').value = data.memUsageThresholdHigh ?? '';
-                document.getElementById('configMemUsageThreshold').placeholder = `비우면 전역 기본값 (${data.globalMemUsageThreshold}%) 사용`;
+                document.getElementById('configTempThresholdHigh').value       = data.temperatureThresholdHigh ?? '';
+                document.getElementById('configTempThresholdHigh').placeholder = `비우면 전역 (${data.globalTempThresholdHigh}°C) 사용`;
+                document.getElementById('configTempThresholdLow').value        = data.temperatureThresholdLow ?? '';
+                document.getElementById('configTempThresholdLow').placeholder  = `비우면 전역 (${data.globalTempThresholdLow}°C) 사용`;
+                document.getElementById('configHumidityThresholdHigh').value       = data.humidityThresholdHigh ?? '';
+                document.getElementById('configHumidityThresholdHigh').placeholder = `비우면 전역 (${data.globalHumidityThresholdHigh}%) 사용`;
+                document.getElementById('configHumidityThresholdLow').value        = data.humidityThresholdLow ?? '';
+                document.getElementById('configHumidityThresholdLow').placeholder  = `비우면 전역 (${data.globalHumidityThresholdLow}%) 사용`;
                 document.getElementById('configDiscordWebhookUrl').value = data.discordWebhookUrl || '';
                 document.getElementById('configApiKey').value = data.apiKey ?? '(미등록 기기 — 저장 후 발급됩니다)';
             }
@@ -1754,17 +1780,16 @@
         }
     }
 
-    function resetTempThreshold() {
-        document.getElementById('configTempThreshold').value = '';
-    }
-    function resetMemThreshold() {
-        document.getElementById('configMemUsageThreshold').value = '';
+    function resetThreshold(inputId) {
+        document.getElementById(inputId).value = '';
     }
 
     async function saveConfig() {
-        const deviceId = document.getElementById('configDeviceId').value;
-        const tempVal = document.getElementById('configTempThreshold').value.trim();
-        const memVal  = document.getElementById('configMemUsageThreshold').value.trim();
+        const deviceId      = document.getElementById('configDeviceId').value;
+        const tempHighVal   = document.getElementById('configTempThresholdHigh').value.trim();
+        const tempLowVal    = document.getElementById('configTempThresholdLow').value.trim();
+        const humHighVal    = document.getElementById('configHumidityThresholdHigh').value.trim();
+        const humLowVal     = document.getElementById('configHumidityThresholdLow').value.trim();
         const msgEl = document.getElementById('configMessage');
 
         try {
@@ -1773,8 +1798,10 @@
                 headers: { 'Content-Type': 'application/json', ...getCsrfHeaders() },
                 body: JSON.stringify({
                     deviceId,
-                    temperatureThresholdHigh: tempVal ? parseFloat(tempVal) : null,
-                    memUsageThresholdHigh: memVal  ? parseFloat(memVal)  : null,
+                    temperatureThresholdHigh: tempHighVal ? parseFloat(tempHighVal) : null,
+                    temperatureThresholdLow:  tempLowVal  ? parseFloat(tempLowVal)  : null,
+                    humidityThresholdHigh:    humHighVal  ? parseFloat(humHighVal)  : null,
+                    humidityThresholdLow:     humLowVal   ? parseFloat(humLowVal)   : null,
                     discordWebhookUrl: document.getElementById('configDiscordWebhookUrl').value || null
                 })
             });
@@ -1800,7 +1827,7 @@
     // ─── 초기화 ──────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
         temperatureChart = createChart('temperatureChart', '온도 (°C)', '#f87171');
-        memUsageChart = createChart('memUsageChart', '메모리 사용률 (%)', '#34d399');
+        humidityChart = createChart('humidityChart', '습도 (%)', '#34d399');
 
         // 내보내기 날짜 기본값: 오늘
         const today = new Date().toISOString().slice(0, 10);

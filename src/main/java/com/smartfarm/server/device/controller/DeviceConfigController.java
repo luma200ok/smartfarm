@@ -21,16 +21,22 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/device-config")
 @RequiredArgsConstructor
-@Tag(name = "3. 기기 설정 API", description = "기기별 온도/메모리 임계값 관리")
+@Tag(name = "3. 기기 설정 API", description = "기기별 온도/습도 임계값 관리")
 public class DeviceConfigController {
 
     private final DeviceConfigService deviceConfigService;
 
-    @Value("${smartfarm.sensor.default-temp-threshold}")
-    private double defaultTempThreshold;
+    @Value("${smartfarm.sensor.default-temp-threshold-high}")
+    private double defaultTempThresholdHigh;
 
-    @Value("${smartfarm.sensor.default-mem-usage-threshold}")
-    private double defaultMemUsageThreshold;
+    @Value("${smartfarm.sensor.default-temp-threshold-low}")
+    private double defaultTempThresholdLow;
+
+    @Value("${smartfarm.sensor.default-humidity-threshold-high}")
+    private double defaultHumidityThresholdHigh;
+
+    @Value("${smartfarm.sensor.default-humidity-threshold-low}")
+    private double defaultHumidityThresholdLow;
 
     @Operation(summary = "전체 기기 설정 조회 (admin만 전체, 일반 사용자는 자기 기기만)")
     @GetMapping
@@ -41,12 +47,12 @@ public class DeviceConfigController {
         if (principal.isAdmin()) {
             return ResponseEntity.ok(deviceConfigService.getAllDeviceConfigs());
         }
-        // 일반 사용자 — 자신의 기기 설정만 반환
         String linked = principal.getLinkedDeviceId();
         if (linked == null) return ResponseEntity.ok(List.of());
         return ResponseEntity.ok(List.of(
                 DeviceConfigResponseDto.from(deviceConfigService.getDeviceConfig(linked),
-                        defaultTempThreshold, defaultMemUsageThreshold)));
+                        defaultTempThresholdHigh, defaultTempThresholdLow,
+                        defaultHumidityThresholdHigh, defaultHumidityThresholdLow)));
     }
 
     @Operation(summary = "특정 기기 설정 조회")
@@ -59,7 +65,8 @@ public class DeviceConfigController {
         assertDeviceAccess(principal, deviceId);
         return ResponseEntity.ok(
                 DeviceConfigResponseDto.from(deviceConfigService.getDeviceConfig(deviceId),
-                        defaultTempThreshold, defaultMemUsageThreshold));
+                        defaultTempThresholdHigh, defaultTempThresholdLow,
+                        defaultHumidityThresholdHigh, defaultHumidityThresholdLow));
     }
 
     @Operation(summary = "기기 설정 저장/수정")
