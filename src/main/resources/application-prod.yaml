@@ -14,9 +14,6 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  flyway:
-    repair-on-migrate: true
-
   jpa:
     hibernate:
       ddl-auto: validate
