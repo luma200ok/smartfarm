@@ -51,9 +51,6 @@ public class SensorAlertEventHandler {
         } else if (alert.isHumidifierOff()) {
             deviceControlService.sendAutoCommand(deviceId, "HUMIDIFIER_OFF");
         }
-
-        // 3. 실시간 SSE 푸시
-        sendSsePush(alert);
     }
 
     private void sendSsePush(SensorAlert alert) {
