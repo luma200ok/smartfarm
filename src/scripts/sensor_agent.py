@@ -6,7 +6,7 @@ import threading
 import json
 import math
 import sseclient
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from dotenv import load_dotenv, set_key
 
@@ -196,7 +196,8 @@ def get_sensor_data() -> dict:
     """
     global _temp, _humidity
 
-    now  = datetime.now()
+    KST  = timezone(timedelta(hours=9))
+    now  = datetime.now(KST)
     hour = now.hour + now.minute / 60.0 + now.second / 3600.0
 
     if _RISE_START <= hour < _PEAK_HOUR:
