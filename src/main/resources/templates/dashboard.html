@@ -710,6 +710,67 @@
             .export-form > div > div { flex-wrap: wrap; gap: 6px !important; }
             .time-picker-wrap { font-size: 0.8rem; }
         }
+
+        /* ─── 장치 실시간 상태 뱃지 (쿨링팬/가습기) ──────────────── */
+        .device-state-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .device-state-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 0.85rem;
+            transition: border-color 0.3s, background 0.3s;
+        }
+
+        .device-state-pill.state-on {
+            border-color: #22c55e;
+            background: #052e16;
+        }
+
+        .device-state-pill .device-state-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #475569;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .device-state-pill.state-on .device-state-dot {
+            background: #22c55e;
+            box-shadow: 0 0 6px #22c55e80;
+            animation: pulse 2s infinite;
+        }
+
+        .device-state-pill .state-label {
+            font-weight: 700;
+            min-width: 28px;
+            transition: color 0.3s;
+        }
+
+        .device-state-pill.state-on  .state-label { color: #22c55e; }
+        .device-state-pill.state-off .state-label { color: #475569; }
+
+        /* ─── 임계값 초과 시 차트 카드 강조 ─────────────────────── */
+        .chart-card.over-threshold-high {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 1px #ef444440;
+            transition: border-color 0.4s, box-shadow 0.4s;
+        }
+
+        .chart-card.over-threshold-low {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 1px #60a5fa40;
+            transition: border-color 0.4s, box-shadow 0.4s;
+        }
     </style>
 </head>
 <body>
@@ -848,6 +909,20 @@
             <div class="label">평균 습도</div>
             <div class="value" id="avgHumidity">--</div>
             <div class="unit">%</div>
+        </div>
+    </div>
+
+    <!-- 장치 실시간 상태 (쿨링팬 / 가습기) -->
+    <div class="device-state-bar" id="deviceStateBar">
+        <div class="device-state-pill state-off" id="coolingFanStatePill">
+            <div class="device-state-dot"></div>
+            <span>&#10052; 쿨링팬</span>
+            <span class="state-label" id="coolingFanStateLabel">OFF</span>
+        </div>
+        <div class="device-state-pill state-off" id="humidifierStatePill">
+            <div class="device-state-dot"></div>
+            <span>&#128167; 가습기</span>
+            <span class="state-label" id="humidifierStateLabel">OFF</span>
         </div>
     </div>
 
@@ -1054,6 +1129,7 @@
     let humidityChart = null;
     const MAX_DATA_POINTS = 20;
     let alertBadgeCount = 0;
+    let thresholds = { tempHigh: null, tempLow: null, humidityHigh: null, humidityLow: null };
 
     // ─── Chart.js 초기화 ─────────────────────────────────────────
     function createChart(canvasId, label, color) {
@@ -1062,17 +1138,41 @@
             type: 'line',
             data: {
                 labels: [],
-                datasets: [{
-                    label: label,
-                    data: [],
-                    borderColor: color,
-                    backgroundColor: color + '20',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    tension: 0.4,
-                    fill: true,
-                }]
+                datasets: [
+                    {
+                        label: label,
+                        data: [],
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        tension: 0.4,
+                        fill: true,
+                    },
+                    {
+                        label: '상한',
+                        data: [],
+                        borderColor: '#ef444490',
+                        borderWidth: 1.5,
+                        borderDash: [6, 4],
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                        fill: false,
+                        tension: 0,
+                    },
+                    {
+                        label: '하한',
+                        data: [],
+                        borderColor: '#60a5fa90',
+                        borderWidth: 1.5,
+                        borderDash: [6, 4],
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                        fill: false,
+                        tension: 0,
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -1097,6 +1197,7 @@
                         borderWidth: 1,
                         titleColor: '#94a3b8',
                         bodyColor: '#e2e8f0',
+                        filter: item => item.datasetIndex === 0,
                     }
                 }
             }
@@ -1113,15 +1214,23 @@
 
             temperatureChart.data.labels = [];
             temperatureChart.data.datasets[0].data = [];
+            temperatureChart.data.datasets[1].data = [];
+            temperatureChart.data.datasets[2].data = [];
             humidityChart.data.labels = [];
             humidityChart.data.datasets[0].data = [];
+            humidityChart.data.datasets[1].data = [];
+            humidityChart.data.datasets[2].data = [];
 
             items.forEach(item => {
                 const label = formatTime(item.timestamp);
                 temperatureChart.data.labels.push(label);
                 temperatureChart.data.datasets[0].data.push(item.temperature.toFixed(1));
+                temperatureChart.data.datasets[1].data.push(thresholds.tempHigh);
+                temperatureChart.data.datasets[2].data.push(thresholds.tempLow);
                 humidityChart.data.labels.push(label);
                 humidityChart.data.datasets[0].data.push(item.humidity.toFixed(1));
+                humidityChart.data.datasets[1].data.push(thresholds.humidityHigh);
+                humidityChart.data.datasets[2].data.push(thresholds.humidityLow);
             });
 
             temperatureChart.update();
@@ -1575,6 +1684,8 @@
             pushChartData(data);
             document.getElementById('lastUpdated').textContent =
                 `마지막 갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
+            // 실시간 장치 상태 뱃지 갱신
+            updateDeviceStatePills(data.coolingFanOn, data.humidifierOn);
             // 임계값 초과 알림(쿨링팬 또는 히터 가동) 발생 시 뱃지 증가
             if (data.coolingFanOn || data.humidifierOn) {
                 incrementAlertBadge();
@@ -1597,19 +1708,86 @@
 
         temperatureChart.data.labels.push(label);
         temperatureChart.data.datasets[0].data.push(parseFloat(data.temperature).toFixed(1));
+        temperatureChart.data.datasets[1].data.push(thresholds.tempHigh);
+        temperatureChart.data.datasets[2].data.push(thresholds.tempLow);
         if (temperatureChart.data.labels.length > MAX_DATA_POINTS) {
             temperatureChart.data.labels.shift();
             temperatureChart.data.datasets[0].data.shift();
+            temperatureChart.data.datasets[1].data.shift();
+            temperatureChart.data.datasets[2].data.shift();
         }
         temperatureChart.update();
 
         humidityChart.data.labels.push(label);
         humidityChart.data.datasets[0].data.push(parseFloat(data.humidity).toFixed(1));
+        humidityChart.data.datasets[1].data.push(thresholds.humidityHigh);
+        humidityChart.data.datasets[2].data.push(thresholds.humidityLow);
         if (humidityChart.data.labels.length > MAX_DATA_POINTS) {
             humidityChart.data.labels.shift();
             humidityChart.data.datasets[0].data.shift();
+            humidityChart.data.datasets[1].data.shift();
+            humidityChart.data.datasets[2].data.shift();
         }
         humidityChart.update();
+
+        // 임계값 초과 시 차트 카드 색상 강조
+        updateChartCardColors(data.coolingFanOn, data.humidifierOn);
+    }
+
+    // ─── 임계값 fetch & 차트 적용 ────────────────────────────────
+    async function fetchAndApplyThresholds(deviceId) {
+        try {
+            const res = await fetch(`/api/device-config/${encodeURIComponent(deviceId)}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            thresholds.tempHigh     = data.temperatureThresholdHigh  ?? data.globalTempThresholdHigh;
+            thresholds.tempLow      = data.temperatureThresholdLow   ?? data.globalTempThresholdLow;
+            thresholds.humidityHigh = data.humidityThresholdHigh     ?? data.globalHumidityThresholdHigh;
+            thresholds.humidityLow  = data.humidityThresholdLow      ?? data.globalHumidityThresholdLow;
+            rebuildThresholdDatasets();
+        } catch (e) {
+            console.warn('[임계값] 로드 실패:', e);
+        }
+    }
+
+    function rebuildThresholdDatasets() {
+        const len = temperatureChart.data.labels.length;
+        temperatureChart.data.datasets[1].data = Array(len).fill(thresholds.tempHigh);
+        temperatureChart.data.datasets[2].data = Array(len).fill(thresholds.tempLow);
+        humidityChart.data.datasets[1].data    = Array(len).fill(thresholds.humidityHigh);
+        humidityChart.data.datasets[2].data    = Array(len).fill(thresholds.humidityLow);
+        temperatureChart.update('none');
+        humidityChart.update('none');
+    }
+
+    // ─── 장치 상태 뱃지 갱신 ────────────────────────────────────
+    function updateDeviceStatePills(coolingOn, humidifierOn) {
+        const coolingPill  = document.getElementById('coolingFanStatePill');
+        const humidPill    = document.getElementById('humidifierStatePill');
+        const coolingLabel = document.getElementById('coolingFanStateLabel');
+        const humidLabel   = document.getElementById('humidifierStateLabel');
+        if (coolingPill && coolingLabel) {
+            coolingPill.classList.toggle('state-on',  !!coolingOn);
+            coolingPill.classList.toggle('state-off', !coolingOn);
+            coolingLabel.textContent = coolingOn ? 'ON' : 'OFF';
+        }
+        if (humidPill && humidLabel) {
+            humidPill.classList.toggle('state-on',  !!humidifierOn);
+            humidPill.classList.toggle('state-off', !humidifierOn);
+            humidLabel.textContent = humidifierOn ? 'ON' : 'OFF';
+        }
+    }
+
+    // ─── 임계값 초과 시 차트 카드 테두리 색상 변경 ───────────────
+    function updateChartCardColors(coolingFanOn, humidifierOn) {
+        const tempCard  = document.querySelector('#section-realtime .chart-card:first-child');
+        const humidCard = document.querySelector('#section-realtime .chart-card:last-child');
+        if (tempCard) {
+            tempCard.classList.toggle('over-threshold-high', !!coolingFanOn);
+        }
+        if (humidCard) {
+            humidCard.classList.toggle('over-threshold-low', !!humidifierOn);
+        }
     }
 
     // ─── 알림 뱃지 ───────────────────────────────────────────────
@@ -1664,8 +1842,18 @@
     }, { passive: true });
 
     // ─── 기기 변경 이벤트 ────────────────────────────────────────
-    document.getElementById('deviceSelect').addEventListener('change', function () {
+    document.getElementById('deviceSelect').addEventListener('change', async function () {
         currentDeviceId = this.value;
+        // 기기 변경 시 상태 초기화
+        ['coolingStatus', 'humidifierStatus'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '';
+        });
+        updateDeviceStatePills(false, false);
+        updateChartCardColors(false, false);
+        resetAlertBadge();
+        // 새 기기의 임계값 먼저 가져온 후 나머지 로드
+        await fetchAndApplyThresholds(currentDeviceId);
         loadHistory();
         loadStatistics();
         loadEventLogs();
@@ -1673,12 +1861,6 @@
         loadAlertCount(7);
         loadComparison();
         loadControlHistory();
-        // 기기 변경 시 제어 상태 및 알림 뱃지 초기화
-        ['coolingStatus', 'humidifierStatus'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = '';
-        });
-        resetAlertBadge();
         connectSSE(currentDeviceId);
     });
 
@@ -1842,6 +2024,7 @@
 
         await loadDevices();
         if (currentDeviceId) {
+            await fetchAndApplyThresholds(currentDeviceId);
             await Promise.all([
                 loadHistory(),
                 loadStatistics(),
