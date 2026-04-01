@@ -18,8 +18,8 @@ smartfarm:
     # DB에 설정값이 없을 때 사용할 기본 임계치
     default-temp-threshold-high: 26.0      # 온도 상한 (쿨링팬 ON)
     default-temp-threshold-low: 20.0       # 온도 하한 (쿨링팬 OFF)
-    default-humidity-threshold-high: 70.0  # 습도 상한 (가습기 ON)
-    default-humidity-threshold-low: 40.0   # 습도 하한 (가습기 OFF)
+    default-humidity-threshold-high: 80.0  # 습도 상한 (가습기 OFF)
+    default-humidity-threshold-low: 60.0   # 습도 하한 (가습기 ON)
 
     # 데이터 유효성 검사를 위한 범위 설정
     validation:

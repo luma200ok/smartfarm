@@ -6,6 +6,7 @@ import threading
 import json
 import math
 import sseclient
+from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv, set_key
 
@@ -173,28 +174,45 @@ def flush_pending_commands():
 
 # 현실적인 온도/습도 시뮬레이션을 위한 시작값
 _temp     = 23.0   # 초기 온도 (°C)
-_humidity = 55.0   # 초기 습도 (%)
+_humidity = 70.0   # 초기 습도 (%)
+
+# 일교차 설정 상수
+_PEAK_HOUR  = 14.5   # 최고 기온 시각 (14:30)
+_RISE_START = 6.0    # 상승 시작 시각 (06:00)
+_RISE_HOURS = _PEAK_HOUR - _RISE_START   # 상승 구간: 8.5시간
+_FALL_HOURS = 24.0  - _RISE_HOURS        # 하강 구간: 15.5시간
+
+_TEMP_MIN  = 20.0   # 일 최저 온도 (°C)
+_TEMP_MAX  = 26.0   # 일 최고 온도 (°C)
+_HUMI_MIN  = 60.0   # 일 최저 습도 (%)
+_HUMI_MAX  = 80.0   # 일 최고 습도 (%)
 
 def get_sensor_data() -> dict:
     """
-    현실적인 온도·습도 가상 데이터를 생성합니다.
-    - 온도  : 18~30°C 사이에서 sin 파형 + 랜덤 노이즈로 완만하게 변동
-    - 습도  : 35~75% 사이에서 sin 파형 + 랜덤 노이즈로 완만하게 변동
-    임계값 근처에서는 ON/OFF 제어 로직이 자주 트리거되도록 설계되어 있습니다.
-    (온도 상한 26°C / 하한 20°C, 습도 상한 70% / 하한 40%)
+    현실적인 일교차 패턴으로 온도·습도 데이터를 생성합니다.
+    - 온도: 최저 20°C (06:00) → 최고 26°C (14:30) → 최저 (다음 06:00)
+            상승(06:00~14:30, 8.5h): sin(0→π/2), 하강(14:30~06:00, 15.5h): cos(0→π/2)
+    - 습도: 온도와 반비례, 최고 80% (06:00) → 최저 60% (14:30)
     """
     global _temp, _humidity
 
+    now  = datetime.now()
+    hour = now.hour + now.minute / 60.0 + now.second / 3600.0
+
+    if _RISE_START <= hour < _PEAK_HOUR:
+        # 상승 구간: 0 → 1
+        progress = (hour - _RISE_START) / _RISE_HOURS
+        factor   = math.sin(math.pi / 2 * progress)
+    else:
+        # 하강 구간: 1 → 0 (자정을 넘기 위해 hour 보정)
+        h        = hour if hour >= _PEAK_HOUR else hour + 24.0
+        progress = (h - _PEAK_HOUR) / _FALL_HOURS
+        factor   = math.cos(math.pi / 2 * progress)
+
+    _temp     = round(_TEMP_MIN + (_TEMP_MAX - _TEMP_MIN) * factor + random.uniform(-0.2, 0.2), 1)
+    _humidity = round(_HUMI_MAX - (_HUMI_MAX - _HUMI_MIN) * factor + random.uniform(-0.5, 0.5), 1)
+
     t = time.time()
-
-    # 온도: 23±5°C 주기 sin 파형 (주기 ~300초) + ±0.3°C 노이즈
-    base_temp = 23.0 + 5.0 * math.sin(t / 300 * 2 * math.pi)
-    _temp = round(base_temp + random.uniform(-0.3, 0.3), 1)
-
-    # 습도: 55±18% 주기 sin 파형 (주기 ~400초, 온도와 위상 다름) + ±0.5% 노이즈
-    base_humidity = 55.0 + 18.0 * math.sin(t / 400 * 2 * math.pi + 1.0)
-    _humidity = round(base_humidity + random.uniform(-0.5, 0.5), 1)
-
     return {
         "deviceId":        DEVICE_ID,
         "cpu_temperature": _temp,
