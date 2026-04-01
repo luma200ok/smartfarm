@@ -30,15 +30,15 @@ public class DeviceControlService {
 
     private static final Set<String> VALID_COMMAND_TYPES = Set.of(
             "COOLING_FAN_ON", "COOLING_FAN_OFF",
-            "HEATER_ON", "HEATER_OFF"
+            "HUMIDIFIER_ON", "HUMIDIFIER_OFF"
     );
 
     /** 반대 명령 관계: ON → OFF, OFF → ON */
     private static final java.util.Map<String, String> OPPOSITE_COMMAND = java.util.Map.of(
             "COOLING_FAN_ON",  "COOLING_FAN_OFF",
             "COOLING_FAN_OFF", "COOLING_FAN_ON",
-            "HEATER_ON",       "HEATER_OFF",
-            "HEATER_OFF",      "HEATER_ON"
+            "HUMIDIFIER_ON",   "HUMIDIFIER_OFF",
+            "HUMIDIFIER_OFF",  "HUMIDIFIER_ON"
     );
 
     private final DeviceControlCommandRepository commandRepository;

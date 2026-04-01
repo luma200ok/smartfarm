@@ -5,12 +5,15 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import java.util.TimeZone;
+
 @SpringBootApplication
 @EnableScheduling
-@EnableCaching // 성능 최적화를 위해 캐싱 기능을 활성화합니다.
+@EnableCaching
 public class ServerApplication {
 
     public static void main(String[] args) {
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
         SpringApplication.run(ServerApplication.class, args);
     }
 }
