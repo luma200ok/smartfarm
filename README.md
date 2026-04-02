@@ -209,8 +209,6 @@
 | GET | `/api/sse/subscribe` | ✅ | 브라우저 대시보드 구독 (`sensor` 이벤트) |
 | GET | `/api/sse/device-command-stream` | API 키 | PC 클라이언트 제어 명령 수신 (`command` 이벤트) |
 
-> 📄 **Swagger UI:** `http://localhost:8080/swagger-ui/index.html`
-
 <br>
 
 ## ⚙️ 실행 방법
