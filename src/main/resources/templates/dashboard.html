@@ -1667,6 +1667,9 @@
 
     // ─── SSE 연결 관리 ───────────────────────────────────────────
     let eventSource = null;
+    // 장치 실제 동작 상태 (command-ack 기반으로 갱신)
+    let coolingFanActive  = false;
+    let humidifierActive  = false;
 
     function connectSSE(deviceId) {
         if (eventSource) {
@@ -1684,9 +1687,8 @@
             pushChartData(data);
             document.getElementById('lastUpdated').textContent =
                 `마지막 갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
-            // 실시간 장치 상태 뱃지 갱신
-            updateDeviceStatePills(data.coolingFanOn, data.humidifierOn);
-            // 임계값 초과 알림(쿨링팬 또는 히터 가동) 발생 시 뱃지 증가
+            // 임계값 초과 시 차트 카드 색상 갱신 (표시등은 command-ack에서 갱신)
+            updateChartCardColors(data.coolingFanOn, data.humidifierOn);
             if (data.coolingFanOn || data.humidifierOn) {
                 incrementAlertBadge();
             }
@@ -1695,7 +1697,13 @@
         eventSource.addEventListener('command-ack', function(e) {
             const ack = JSON.parse(e.data);
             console.log('[SSE] 명령 ACK:', ack.commandType, '→', ack.status);
-            // 필요시 UI 업데이트 로직 추가
+            if (ack.status === 'ACKNOWLEDGED') {
+                if (ack.commandType === 'COOLING_FAN_ON')  coolingFanActive = true;
+                if (ack.commandType === 'COOLING_FAN_OFF') coolingFanActive = false;
+                if (ack.commandType === 'HUMIDIFIER_ON')   humidifierActive = true;
+                if (ack.commandType === 'HUMIDIFIER_OFF')  humidifierActive = false;
+                updateDeviceStatePills(coolingFanActive, humidifierActive);
+            }
         });
 
         eventSource.onerror = function () {
@@ -1845,6 +1853,8 @@
     document.getElementById('deviceSelect').addEventListener('change', async function () {
         currentDeviceId = this.value;
         // 기기 변경 시 상태 초기화
+        coolingFanActive = false;
+        humidifierActive = false;
         ['coolingStatus', 'humidifierStatus'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.textContent = '';

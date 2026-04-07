@@ -113,6 +113,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 4-2. SSE 클라이언트 연결 끊김(Broken pipe) — 정상 동작이므로 무시
+     * 브라우저가 페이지를 닫으면 발생하며, 에러 응답을 쓸 수 없으므로 반환값 없음
+     */
+    @ExceptionHandler(org.springframework.web.context.request.async.AsyncRequestNotUsableException.class)
+    protected void handleAsyncRequestNotUsableException(Exception e) {
+        log.debug("SSE client disconnected (Broken pipe) — 정상 종료");
+    }
+
+    /**
      * 5. 위에서 잡히지 않은 모든 알 수 없는 에러 처리 (최후의 보루)
      */
     @ExceptionHandler(Exception.class)

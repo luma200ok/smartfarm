@@ -19,8 +19,8 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Slf4j
 @Service
@@ -42,12 +42,14 @@ public class DataBatchService {
         log.info("[BATCH TASK] 주기적 데이터 평균 집계 및 이관 시작 - Redis -> MySQL");
         
         try {
-            // 1. Redis에 저장된 모든 센서 데이터를 가져옵니다.
-            Iterable<SensorData> redisDataList = redisRepository.findAll();
-            
-            // Iterable을 List로 변환 (null이거나 deviceId가 없는 비정상 데이터 필터링)
-            List<SensorData> validDataList = StreamSupport.stream(redisDataList.spliterator(), false)
-                    .filter(data -> data != null && data.getDeviceId() != null)
+            // 1. MySQL DeviceConfig에서 등록된 deviceId 목록을 조회한 뒤,
+            //    각 deviceId로 Redis에서 직접 조회합니다.
+            //    (Spring Data Redis findAll()은 내부 인덱스 SET에 의존하는데,
+            //     해당 SET이 비어있는 경우 데이터를 찾지 못하는 문제가 있음)
+            List<String> deviceIds = deviceConfigRepository.findAllDeviceIds();
+            List<SensorData> validDataList = deviceIds.stream()
+                    .map(id -> redisRepository.findById(id).orElse(null))
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             log.info("[BATCH TASK] Redis에서 읽은 유효 데이터 수: {}", validDataList.size());
