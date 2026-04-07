@@ -967,6 +967,21 @@
                 </div>
                 <div class="ctrl-status" id="coolingStatus"></div>
             </div>
+            <!-- 히터 -->
+            <div class="ctrl-device-box">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                    <div class="ctrl-device-label" style="color:#f97316; margin-bottom:0;">&#128293; 히터</div>
+                    <div class="device-state-pill state-off" id="heaterStatePill" style="padding:6px 12px;">
+                        <div class="device-state-dot"></div>
+                        <span class="state-label" id="heaterStateLabel">OFF</span>
+                    </div>
+                </div>
+                <div class="ctrl-btn-row">
+                    <button class="ctrl-btn ctrl-on"  id="btnHeaterOn"  onclick="sendControl('HEATER_ON')">켜기 ON</button>
+                    <button class="ctrl-btn ctrl-off" id="btnHeaterOff" onclick="sendControl('HEATER_OFF')">끄기 OFF</button>
+                </div>
+                <div class="ctrl-status" id="heaterStatus"></div>
+            </div>
             <!-- 가습기 -->
             <div class="ctrl-device-box">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
@@ -1545,7 +1560,9 @@
             });
             if (res.ok) {
                 const data = await res.json();
-                const statusElId = commandType.startsWith('COOLING') ? 'coolingStatus' : 'humidifierStatus';
+                const statusElId = commandType.startsWith('COOLING') ? 'coolingStatus'
+                                 : commandType.startsWith('HEATER')  ? 'heaterStatus'
+                                 : 'humidifierStatus';
                 const statusEl   = document.getElementById(statusElId);
                 if (statusEl) {
                     statusEl.innerHTML =
@@ -1685,6 +1702,7 @@
     let eventSource = null;
     // 장치 실제 동작 상태 (command-ack 기반으로 갱신)
     let coolingFanActive  = false;
+    let heaterActive      = false;
     let humidifierActive  = false;
 
     function connectSSE(deviceId) {
@@ -1704,8 +1722,8 @@
             document.getElementById('lastUpdated').textContent =
                 `마지막 갱신: ${new Date().toLocaleTimeString('ko-KR')}`;
             // 임계값 초과 시 차트 카드 색상 갱신 (표시등은 command-ack에서 갱신)
-            updateChartCardColors(data.coolingFanOn, data.humidifierOn);
-            if (data.coolingFanOn || data.humidifierOn) {
+            updateChartCardColors(data.coolingFanOn, data.heaterOn, data.humidifierOn);
+            if (data.coolingFanOn || data.heaterOn || data.humidifierOn) {
                 incrementAlertBadge();
             }
         });
@@ -1716,9 +1734,11 @@
             if (ack.status === 'ACKNOWLEDGED') {
                 if (ack.commandType === 'COOLING_FAN_ON')  coolingFanActive = true;
                 if (ack.commandType === 'COOLING_FAN_OFF') coolingFanActive = false;
+                if (ack.commandType === 'HEATER_ON')       heaterActive = true;
+                if (ack.commandType === 'HEATER_OFF')      heaterActive = false;
                 if (ack.commandType === 'HUMIDIFIER_ON')   humidifierActive = true;
                 if (ack.commandType === 'HUMIDIFIER_OFF')  humidifierActive = false;
-                updateDeviceStatePills(coolingFanActive, humidifierActive);
+                updateDeviceStatePills(coolingFanActive, heaterActive, humidifierActive);
             }
         });
 
@@ -1755,7 +1775,7 @@
         humidityChart.update();
 
         // 임계값 초과 시 차트 카드 색상 강조
-        updateChartCardColors(data.coolingFanOn, data.humidifierOn);
+        updateChartCardColors(data.coolingFanOn, data.heaterOn, data.humidifierOn);
     }
 
     // ─── 임계값 fetch & 차트 적용 ────────────────────────────────
@@ -1785,15 +1805,22 @@
     }
 
     // ─── 장치 상태 뱃지 갱신 ────────────────────────────────────
-    function updateDeviceStatePills(coolingOn, humidifierOn) {
+    function updateDeviceStatePills(coolingOn, heaterOn, humidifierOn) {
         const coolingPill  = document.getElementById('coolingFanStatePill');
+        const heaterPill   = document.getElementById('heaterStatePill');
         const humidPill    = document.getElementById('humidifierStatePill');
         const coolingLabel = document.getElementById('coolingFanStateLabel');
+        const heaterLabel  = document.getElementById('heaterStateLabel');
         const humidLabel   = document.getElementById('humidifierStateLabel');
         if (coolingPill && coolingLabel) {
             coolingPill.classList.toggle('state-on',  !!coolingOn);
             coolingPill.classList.toggle('state-off', !coolingOn);
             coolingLabel.textContent = coolingOn ? 'ON' : 'OFF';
+        }
+        if (heaterPill && heaterLabel) {
+            heaterPill.classList.toggle('state-on',  !!heaterOn);
+            heaterPill.classList.toggle('state-off', !heaterOn);
+            heaterLabel.textContent = heaterOn ? 'ON' : 'OFF';
         }
         if (humidPill && humidLabel) {
             humidPill.classList.toggle('state-on',  !!humidifierOn);
@@ -1803,11 +1830,12 @@
     }
 
     // ─── 임계값 초과 시 차트 카드 테두리 색상 변경 ───────────────
-    function updateChartCardColors(coolingFanOn, humidifierOn) {
+    function updateChartCardColors(coolingFanOn, heaterOn, humidifierOn) {
         const tempCard  = document.querySelector('#section-realtime .chart-card:first-child');
         const humidCard = document.querySelector('#section-realtime .chart-card:last-child');
         if (tempCard) {
             tempCard.classList.toggle('over-threshold-high', !!coolingFanOn);
+            tempCard.classList.toggle('over-threshold-low',  !!heaterOn);
         }
         if (humidCard) {
             humidCard.classList.toggle('over-threshold-low', !!humidifierOn);
@@ -1870,13 +1898,14 @@
         currentDeviceId = this.value;
         // 기기 변경 시 상태 초기화
         coolingFanActive = false;
+        heaterActive     = false;
         humidifierActive = false;
-        ['coolingStatus', 'humidifierStatus'].forEach(id => {
+        ['coolingStatus', 'heaterStatus', 'humidifierStatus'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.textContent = '';
         });
-        updateDeviceStatePills(false, false);
-        updateChartCardColors(false, false);
+        updateDeviceStatePills(false, false, false);
+        updateChartCardColors(false, false, false);
         resetAlertBadge();
         // 새 기기의 임계값 먼저 가져온 후 나머지 로드
         await fetchAndApplyThresholds(currentDeviceId);
@@ -1898,8 +1927,9 @@
             if (!res.ok) return;
             const state = await res.json();
             coolingFanActive  = state.coolingFanOn  ?? false;
+            heaterActive      = state.heaterOn       ?? false;
             humidifierActive  = state.humidifierOn  ?? false;
-            updateDeviceStatePills(coolingFanActive, humidifierActive);
+            updateDeviceStatePills(coolingFanActive, heaterActive, humidifierActive);
         } catch (e) {
             console.warn('기기 상태 조회 실패:', e);
         }

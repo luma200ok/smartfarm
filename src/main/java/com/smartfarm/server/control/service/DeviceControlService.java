@@ -34,6 +34,7 @@ public class DeviceControlService {
 
     private static final Set<String> VALID_COMMAND_TYPES = Set.of(
             "COOLING_FAN_ON", "COOLING_FAN_OFF",
+            "HEATER_ON", "HEATER_OFF",
             "HUMIDIFIER_ON", "HUMIDIFIER_OFF"
     );
 
@@ -41,6 +42,8 @@ public class DeviceControlService {
     private static final java.util.Map<String, String> OPPOSITE_COMMAND = java.util.Map.of(
             "COOLING_FAN_ON",  "COOLING_FAN_OFF",
             "COOLING_FAN_OFF", "COOLING_FAN_ON",
+            "HEATER_ON",       "HEATER_OFF",
+            "HEATER_OFF",      "HEATER_ON",
             "HUMIDIFIER_ON",   "HUMIDIFIER_OFF",
             "HUMIDIFIER_OFF",  "HUMIDIFIER_ON"
     );
@@ -215,7 +218,7 @@ public class DeviceControlService {
     }
 
     /**
-     * 특정 기기의 현재 쿨링팬/가습기 상태를 반환합니다.
+     * 특정 기기의 현재 쿨링팬/히터/가습기 상태를 반환합니다.
      * 가장 최근 ACKNOWLEDGED 명령 타입으로 ON/OFF 여부를 판단합니다.
      * 대시보드 페이지 새로고침 시 표시등 초기화에 사용됩니다.
      */
@@ -225,6 +228,10 @@ public class DeviceControlService {
                 .findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
                         deviceId, List.of("COOLING_FAN_ON", "COOLING_FAN_OFF"), CommandStatus.ACKNOWLEDGED);
 
+        Optional<DeviceControlCommand> latestHeater = commandRepository
+                .findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
+                        deviceId, List.of("HEATER_ON", "HEATER_OFF"), CommandStatus.ACKNOWLEDGED);
+
         Optional<DeviceControlCommand> latestHumidifier = commandRepository
                 .findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
                         deviceId, List.of("HUMIDIFIER_ON", "HUMIDIFIER_OFF"), CommandStatus.ACKNOWLEDGED);
@@ -232,10 +239,13 @@ public class DeviceControlService {
         boolean coolingFanOn = latestFan
                 .map(c -> "COOLING_FAN_ON".equals(c.getCommandType()))
                 .orElse(false);
+        boolean heaterOn = latestHeater
+                .map(c -> "HEATER_ON".equals(c.getCommandType()))
+                .orElse(false);
         boolean humidifierOn = latestHumidifier
                 .map(c -> "HUMIDIFIER_ON".equals(c.getCommandType()))
                 .orElse(false);
 
-        return Map.of("coolingFanOn", coolingFanOn, "humidifierOn", humidifierOn);
+        return Map.of("coolingFanOn", coolingFanOn, "heaterOn", heaterOn, "humidifierOn", humidifierOn);
     }
 }

@@ -45,7 +45,18 @@ public class SensorAlertEventHandler {
             deviceControlService.sendAutoCommand(deviceId, "COOLING_FAN_OFF");
         }
 
-        // 2. 가습기 제어
+        // 2. 히터 제어
+        if (alert.isHeaterOn()) {
+            deviceControlService.sendAutoCommand(deviceId, "HEATER_ON");
+            String msg = String.format("🔥 **[스마트팜 경고] %s 히터 가동!**\n%s", deviceId, alert.getHeaterMessage());
+            discordNotificationService.sendAlertIfNotCoolingDown(deviceId, "TEMP_LOW", msg);
+        } else if (alert.isHeaterOff()) {
+            deviceControlService.sendAutoCommand(deviceId, "HEATER_OFF");
+        } else if (alert.isHeaterMidOff()) {
+            deviceControlService.sendAutoCommand(deviceId, "HEATER_OFF");
+        }
+
+        // 3. 가습기 제어
         if (alert.isHumidifierOn()) {
             deviceControlService.sendAutoCommand(deviceId, "HUMIDIFIER_ON");
             String msg = String.format("💧 **[스마트팜 경고] %s 가습기 가동!**\n%s", deviceId, alert.getHumidifierMessage());
@@ -64,6 +75,7 @@ public class SensorAlertEventHandler {
                 .humidity(alert.getSensorData().getHumidity())
                 .timestamp(alert.getSensorData().getTimestamp())
                 .coolingFanOn(alert.isCoolingFanOn())
+                .heaterOn(alert.isHeaterOn())
                 .humidifierOn(alert.isHumidifierOn())
                 .build();
 

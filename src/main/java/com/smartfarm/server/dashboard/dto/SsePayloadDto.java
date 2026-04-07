@@ -16,5 +16,6 @@ public class SsePayloadDto {
     private double humidity;
     private LocalDateTime timestamp;
     private boolean coolingFanOn;
+    private boolean heaterOn;
     private boolean humidifierOn;
 }

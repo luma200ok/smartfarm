@@ -27,29 +27,45 @@ public class SensorControlStrategy {
 
         boolean coolingFanOn  = temp >= config.temperatureThresholdHigh();
         boolean coolingFanOff = temp <= config.temperatureThresholdLow();
+        boolean heaterOn      = temp <= config.temperatureThresholdLow();    // 온도 낮을 때 히터 ON
+        boolean heaterOff     = temp >= config.temperatureThresholdHigh();   // 온도 높을 때 히터 OFF
         boolean humidifierOn  = humidity <= config.humidityThresholdLow();   // 건조할 때 ON
         boolean humidifierOff = humidity >= config.humidityThresholdHigh();  // 충분히 가습됐을 때 OFF
 
         // 중간값 도달 시 자동 OFF (기기가 실제 ON 상태일 때만 동작)
-        boolean fanCurrentlyOn  = currentState.getOrDefault("coolingFanOn", false);
-        boolean humiCurrentlyOn = currentState.getOrDefault("humidifierOn", false);
+        boolean fanCurrentlyOn    = currentState.getOrDefault("coolingFanOn", false);
+        boolean heaterCurrentlyOn = currentState.getOrDefault("heaterOn", false);
+        boolean humiCurrentlyOn   = currentState.getOrDefault("humidifierOn", false);
         double tempMid     = (config.temperatureThresholdLow() + config.temperatureThresholdHigh()) / 2.0;
         double humidityMid = (config.humidityThresholdLow() + config.humidityThresholdHigh()) / 2.0;
-        boolean coolingFanMidOff = fanCurrentlyOn  && !coolingFanOn && !coolingFanOff && temp <= tempMid;
-        boolean humidifierMidOff = humiCurrentlyOn && !humidifierOn && !humidifierOff && humidity >= humidityMid;
+        boolean coolingFanMidOff = fanCurrentlyOn    && !coolingFanOn && !coolingFanOff && temp <= tempMid;
+        boolean heaterMidOff     = heaterCurrentlyOn && !heaterOn     && !heaterOff     && temp >= tempMid;
+        boolean humidifierMidOff = humiCurrentlyOn   && !humidifierOn && !humidifierOff && humidity >= humidityMid;
 
         String coolingMessage    = null;
+        String heaterMessage     = null;
         String humidifierMessage = null;
 
         if (coolingFanOn) {
             coolingMessage = String.format("현재 온도: %.1f°C, 상한 기준: %.1f°C", temp, config.temperatureThresholdHigh());
-            log.warn("🚨 {} 온도 경고! 쿨링팬 ON ({})", sensorData.getDeviceId(), coolingMessage);
+            log.warn("🚨 {} 온도 높음! 쿨링팬 ON ({})", sensorData.getDeviceId(), coolingMessage);
         } else if (coolingFanOff) {
             coolingMessage = String.format("현재 온도: %.1f°C, 하한 기준: %.1f°C", temp, config.temperatureThresholdLow());
             log.info("✅ {} 온도 하한 도달. 쿨링팬 OFF ({})", sensorData.getDeviceId(), coolingMessage);
         } else if (coolingFanMidOff) {
             coolingMessage = String.format("현재 온도: %.1f°C, 중간값: %.1f°C", temp, tempMid);
             log.info("🌡 {} 온도 중간값 도달. 쿨링팬 자동 OFF ({})", sensorData.getDeviceId(), coolingMessage);
+        }
+
+        if (heaterOn) {
+            heaterMessage = String.format("현재 온도: %.1f°C, 하한 기준: %.1f°C", temp, config.temperatureThresholdLow());
+            log.warn("🔥 {} 온도 낮음! 히터 ON ({})", sensorData.getDeviceId(), heaterMessage);
+        } else if (heaterOff) {
+            heaterMessage = String.format("현재 온도: %.1f°C, 상한 기준: %.1f°C", temp, config.temperatureThresholdHigh());
+            log.info("✅ {} 온도 상한 도달. 히터 OFF ({})", sensorData.getDeviceId(), heaterMessage);
+        } else if (heaterMidOff) {
+            heaterMessage = String.format("현재 온도: %.1f°C, 중간값: %.1f°C", temp, tempMid);
+            log.info("🌡 {} 온도 중간값 도달. 히터 자동 OFF ({})", sensorData.getDeviceId(), heaterMessage);
         }
 
         if (humidifierOn) {
@@ -69,11 +85,15 @@ public class SensorControlStrategy {
                 .config(config)
                 .coolingFanOn(coolingFanOn)
                 .coolingFanOff(coolingFanOff)
+                .coolingFanMidOff(coolingFanMidOff)
+                .heaterOn(heaterOn)
+                .heaterOff(heaterOff)
+                .heaterMidOff(heaterMidOff)
                 .humidifierOn(humidifierOn)
                 .humidifierOff(humidifierOff)
-                .coolingFanMidOff(coolingFanMidOff)
                 .humidifierMidOff(humidifierMidOff)
                 .coolingMessage(coolingMessage)
+                .heaterMessage(heaterMessage)
                 .humidifierMessage(humidifierMessage)
                 .build();
     }

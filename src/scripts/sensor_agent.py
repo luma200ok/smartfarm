@@ -88,19 +88,28 @@ def register_device_if_needed():
 # 기기 상태 (명령 수신 시 갱신) — SSE 스레드·메인 스레드 공유
 _device_state_lock  = threading.Lock()
 _cooling_fan_active = False
+_heater_active      = False
 _humidifier_active  = False
 
 # 제어 효과 상수 (매 3초 사이클 기준)
 _COOLING_DELTA    = 0.5   # 쿨링팬 ON 시 온도 감소량 (°C/사이클)
+_HEATING_DELTA    = 0.5   # 히터 ON 시 온도 증가량 (°C/사이클)
 _HUMIDIFIER_DELTA = 1.0   # 가습기 ON 시 습도 증가량 (%/사이클)
 
 
 def _set_device_state(device: str, active: bool):
-    global _cooling_fan_active, _humidifier_active
+    global _cooling_fan_active, _heater_active, _humidifier_active
     with _device_state_lock:
         if device == "cooling_fan":
             _cooling_fan_active = active
+            if active:
+                _heater_active = False  # 쿨링팬 ON 시 히터 강제 OFF (상호 배제)
             print(f"  🌀 [실행] 쿨링팬 {'가동' if active else '정지'}")
+        elif device == "heater":
+            _heater_active = active
+            if active:
+                _cooling_fan_active = False  # 히터 ON 시 쿨링팬 강제 OFF (상호 배제)
+            print(f"  🔥 [실행] 히터 {'가동' if active else '정지'}")
         else:
             _humidifier_active = active
             print(f"  💧 [실행] 가습기 {'가동' if active else '정지'}")
@@ -110,6 +119,8 @@ def execute_command(command_type: str):
     handlers = {
         "COOLING_FAN_ON":  lambda: _set_device_state("cooling_fan", True),
         "COOLING_FAN_OFF": lambda: _set_device_state("cooling_fan", False),
+        "HEATER_ON":       lambda: _set_device_state("heater", True),
+        "HEATER_OFF":      lambda: _set_device_state("heater", False),
         "HUMIDIFIER_ON":   lambda: _set_device_state("humidifier", True),
         "HUMIDIFIER_OFF":  lambda: _set_device_state("humidifier", False),
     }
@@ -240,9 +251,12 @@ def get_sensor_data() -> dict:
     # 기기 효과 적용 (일교차 기반 값에 즉시 보정 — 스레드 안전 읽기)
     with _device_state_lock:
         fan_active  = _cooling_fan_active
+        htr_active  = _heater_active
         humi_active = _humidifier_active
     if fan_active:
         _temp = round(max(_TEMP_MIN - 2.0, _temp - _COOLING_DELTA), 1)
+    if htr_active:
+        _temp = round(min(_TEMP_MAX + 2.0, _temp + _HEATING_DELTA), 1)
     if humi_active:
         _humidity = round(min(_HUMI_MAX + 10.0, _humidity + _HUMIDIFIER_DELTA), 1)
 
