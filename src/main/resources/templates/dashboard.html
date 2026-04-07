@@ -891,11 +891,12 @@
     <nav class="section-nav" aria-label="섹션 바로가기">
         <a href="#section-stats">&#128200; 오늘 통계</a>
         <a href="#section-realtime">&#128308; 실시간 그래프</a>
+        <a href="#section-control">&#127918; 원격 제어</a>
         <a href="#section-export">&#8595; 이력 내보내기</a>
         <a href="#section-trend">&#128202; 트렌드</a>
         <a href="#section-alert">&#9888; 알림 현황</a>
         <a href="#section-compare">&#128187; 기기 비교</a>
-        <a href="#section-control">&#127918; 원격 제어</a>
+        <a href="#section-control-history">&#128203; 제어 이력</a>
         <a href="#section-eventlog">&#9889; 이벤트 로그</a>
     </nav>
 
@@ -923,20 +924,6 @@
         </div>
     </div>
 
-    <!-- 장치 실시간 상태 (쿨링팬 / 가습기) -->
-    <div class="device-state-bar" id="deviceStateBar">
-        <div class="device-state-pill state-off" id="coolingFanStatePill">
-            <div class="device-state-dot"></div>
-            <span>&#10052; 쿨링팬</span>
-            <span class="state-label" id="coolingFanStateLabel">OFF</span>
-        </div>
-        <div class="device-state-pill state-off" id="humidifierStatePill">
-            <div class="device-state-dot"></div>
-            <span>&#128167; 가습기</span>
-            <span class="state-label" id="humidifierStateLabel">OFF</span>
-        </div>
-    </div>
-
     <!-- 실시간 그래프 -->
     <div class="charts-grid" id="section-realtime">
         <div class="chart-card">
@@ -955,6 +942,45 @@
             </h3>
             <div class="chart-container">
                 <canvas id="humidityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎮 원격 제어 패널 -->
+    <div class="log-card" id="section-control" style="margin-bottom:16px;">
+        <div class="section-header">
+            <h3>&#127918; 원격 제어 (수동 On / Off)</h3>
+        </div>
+        <div class="ctrl-panel-grid">
+            <!-- 쿨링팬 -->
+            <div class="ctrl-device-box">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                    <div class="ctrl-device-label" style="color:#60a5fa; margin-bottom:0;">&#10052; 쿨링팬</div>
+                    <div class="device-state-pill state-off" id="coolingFanStatePill" style="padding:6px 12px;">
+                        <div class="device-state-dot"></div>
+                        <span class="state-label" id="coolingFanStateLabel">OFF</span>
+                    </div>
+                </div>
+                <div class="ctrl-btn-row">
+                    <button class="ctrl-btn ctrl-on"  id="btnCoolingOn"  onclick="sendControl('COOLING_FAN_ON')">켜기 ON</button>
+                    <button class="ctrl-btn ctrl-off" id="btnCoolingOff" onclick="sendControl('COOLING_FAN_OFF')">끄기 OFF</button>
+                </div>
+                <div class="ctrl-status" id="coolingStatus"></div>
+            </div>
+            <!-- 가습기 -->
+            <div class="ctrl-device-box">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                    <div class="ctrl-device-label" style="color:#34d399; margin-bottom:0;">&#128167; 가습기</div>
+                    <div class="device-state-pill state-off" id="humidifierStatePill" style="padding:6px 12px;">
+                        <div class="device-state-dot"></div>
+                        <span class="state-label" id="humidifierStateLabel">OFF</span>
+                    </div>
+                </div>
+                <div class="ctrl-btn-row">
+                    <button class="ctrl-btn ctrl-on"  id="btnHumidifierOn"  onclick="sendControl('HUMIDIFIER_ON')">켜기 ON</button>
+                    <button class="ctrl-btn ctrl-off" id="btnHumidifierOff" onclick="sendControl('HUMIDIFIER_OFF')">끄기 OFF</button>
+                </div>
+                <div class="ctrl-status" id="humidifierStatus"></div>
             </div>
         </div>
     </div>
@@ -1081,33 +1107,12 @@
         </div>
     </div>
 
-    <!-- 🎮 원격 제어 패널 -->
-    <div class="log-card" id="section-control" style="margin-bottom:16px;">
+    <!-- 📋 최근 제어 명령 이력 -->
+    <div class="log-card" id="section-control-history" style="margin-bottom:16px;">
         <div class="section-header">
-            <h3>&#127918; 원격 제어 (수동 On / Off)</h3>
-            <button class="refresh-btn" onclick="loadControlHistory()">이력 새로 고침</button>
+            <h3>&#128203; 최근 제어 명령 이력</h3>
+            <button class="refresh-btn" onclick="loadControlHistory()">새로 고침</button>
         </div>
-        <div class="ctrl-panel-grid">
-            <!-- 쿨링팬 -->
-            <div class="ctrl-device-box">
-                <div class="ctrl-device-label" style="color:#60a5fa;">&#10052; 쿨링팬</div>
-                <div class="ctrl-btn-row">
-                    <button class="ctrl-btn ctrl-on"  id="btnCoolingOn"  onclick="sendControl('COOLING_FAN_ON')">켜기 ON</button>
-                    <button class="ctrl-btn ctrl-off" id="btnCoolingOff" onclick="sendControl('COOLING_FAN_OFF')">끄기 OFF</button>
-                </div>
-                <div class="ctrl-status" id="coolingStatus"></div>
-            </div>
-            <!-- 가습기 -->
-            <div class="ctrl-device-box">
-                <div class="ctrl-device-label" style="color:#34d399;">&#128167; 가습기</div>
-                <div class="ctrl-btn-row">
-                    <button class="ctrl-btn ctrl-on"  id="btnHumidifierOn"  onclick="sendControl('HUMIDIFIER_ON')">켜기 ON</button>
-                    <button class="ctrl-btn ctrl-off" id="btnHumidifierOff" onclick="sendControl('HUMIDIFIER_OFF')">끄기 OFF</button>
-                </div>
-                <div class="ctrl-status" id="humidifierStatus"></div>
-            </div>
-        </div>
-        <!-- 최근 제어 명령 이력 -->
         <div id="controlHistoryContainer">
             <div class="log-empty">데이터를 불러오는 중...</div>
         </div>
