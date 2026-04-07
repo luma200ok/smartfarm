@@ -224,10 +224,10 @@ _HUMI_MAX  = 80.0   # 일 최고 습도 (%)
 
 def get_sensor_data() -> dict:
     """
-    현실적인 일교차 패턴으로 온도·습도 데이터를 생성합니다.
-    - 온도: 최저 20°C (06:00) → 최고 26°C (14:30) → 최저 (다음 06:00)
-            상승(06:00~14:30, 8.5h): sin(0→π/2), 하강(14:30~06:00, 15.5h): cos(0→π/2)
-    - 습도: 온도와 반비례, 최고 80% (06:00) → 최저 60% (14:30)
+    누적 드리프트 방식으로 온도·습도 데이터를 생성합니다.
+    - 일교차 곡선을 "목표값"으로 삼고, 현재값이 목표값으로 서서히 수렴 (수렴계수 0.05)
+    - 기기 ON 상태에서는 매 사이클 델타값이 누적 적용되어 실제 온도 변화를 유발
+    - 기기 OFF 후에는 바로 리셋되지 않고 자연 곡선을 향해 천천히 돌아옴
     """
     global _temp, _humidity
 
@@ -245,10 +245,15 @@ def get_sensor_data() -> dict:
         progress = (h - _PEAK_HOUR) / _FALL_HOURS
         factor   = math.cos(math.pi / 2 * progress)
 
-    _temp     = round(_TEMP_MIN + (_TEMP_MAX - _TEMP_MIN) * factor + random.uniform(-0.2, 0.2), 1)
-    _humidity = round(_HUMI_MAX - (_HUMI_MAX - _HUMI_MIN) * factor + random.uniform(-0.5, 0.5), 1)
+    # 목표값 (시간 기반 자연 곡선)
+    target_temp     = _TEMP_MIN + (_TEMP_MAX - _TEMP_MIN) * factor
+    target_humidity = _HUMI_MAX - (_HUMI_MAX - _HUMI_MIN) * factor
 
-    # 기기 효과 적용 (일교차 기반 값에 즉시 보정 — 스레드 안전 읽기)
+    # 현재값 → 목표값으로 수렴 (5%/사이클) + 미세 노이즈
+    _temp     = round(_temp     + (target_temp     - _temp)     * 0.05 + random.uniform(-0.2, 0.2), 1)
+    _humidity = round(_humidity + (target_humidity - _humidity) * 0.05 + random.uniform(-0.5, 0.5), 1)
+
+    # 기기 효과 누적 적용 (스레드 안전 읽기)
     with _device_state_lock:
         fan_active  = _cooling_fan_active
         htr_active  = _heater_active
