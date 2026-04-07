@@ -496,6 +496,15 @@
             margin-top: 12px;
         }
 
+        .trend-chart-grid > div {
+            min-width: 0; /* Chart.js canvas 내재 너비로 인한 크기 불일치 방지 */
+            width: 100%;
+        }
+
+        .trend-chart-grid > div > div {
+            width: 100%;
+        }
+
         /* ─── 반응형 미디어 쿼리 (강화) ─────────────────────────── */
         @media (max-width: 1024px) {
             .charts-grid { grid-template-columns: 1fr; }
