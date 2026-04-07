@@ -207,10 +207,6 @@ def flush_pending_commands():
 # 가상 센서 데이터 생성 (온도 + 습도)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# 현실적인 온도/습도 시뮬레이션을 위한 시작값
-_temp     = 23.0   # 초기 온도 (°C)
-_humidity = 70.0   # 초기 습도 (%)
-
 # 일교차 설정 상수
 _PEAK_HOUR  = 14.5   # 최고 기온 시각 (14:30)
 _RISE_START = 6.0    # 상승 시작 시각 (06:00)
@@ -222,6 +218,24 @@ _TEMP_MAX  = 26.0   # 일 최고 온도 (°C)
 _HUMI_MIN  = 60.0   # 일 최저 습도 (%)
 _HUMI_MAX  = 80.0   # 일 최고 습도 (%)
 
+def _calc_natural_factor() -> float:
+    """현재 KST 시각 기준 일교차 factor (0~1) 계산"""
+    KST  = timezone(timedelta(hours=9))
+    now  = datetime.now(KST)
+    hour = now.hour + now.minute / 60.0 + now.second / 3600.0
+    if _RISE_START <= hour < _PEAK_HOUR:
+        progress = (hour - _RISE_START) / _RISE_HOURS
+        return math.sin(math.pi / 2 * progress)
+    else:
+        h        = hour if hour >= _PEAK_HOUR else hour + 24.0
+        progress = (h - _PEAK_HOUR) / _FALL_HOURS
+        return math.cos(math.pi / 2 * progress)
+
+# 시작 시각 기준 자연 곡선값으로 초기화 (하드코딩 23°C 대신)
+_init_factor = _calc_natural_factor()
+_temp     = round(_TEMP_MIN + (_TEMP_MAX - _TEMP_MIN) * _init_factor, 1)
+_humidity = round(_HUMI_MAX - (_HUMI_MAX - _HUMI_MIN) * _init_factor, 1)
+
 def get_sensor_data() -> dict:
     """
     누적 드리프트 방식으로 온도·습도 데이터를 생성합니다.
@@ -231,19 +245,7 @@ def get_sensor_data() -> dict:
     """
     global _temp, _humidity
 
-    KST  = timezone(timedelta(hours=9))
-    now  = datetime.now(KST)
-    hour = now.hour + now.minute / 60.0 + now.second / 3600.0
-
-    if _RISE_START <= hour < _PEAK_HOUR:
-        # 상승 구간: 0 → 1
-        progress = (hour - _RISE_START) / _RISE_HOURS
-        factor   = math.sin(math.pi / 2 * progress)
-    else:
-        # 하강 구간: 1 → 0 (자정을 넘기 위해 hour 보정)
-        h        = hour if hour >= _PEAK_HOUR else hour + 24.0
-        progress = (h - _PEAK_HOUR) / _FALL_HOURS
-        factor   = math.cos(math.pi / 2 * progress)
+    factor = _calc_natural_factor()
 
     # 목표값 (시간 기반 자연 곡선)
     target_temp     = _TEMP_MIN + (_TEMP_MAX - _TEMP_MIN) * factor
