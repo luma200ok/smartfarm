@@ -19,23 +19,26 @@ public class SensorAlert {
     private final SensorData sensorData;
     private final DeviceConfigView config;
 
-    private final boolean coolingFanOn;   // 온도 >= 상한 → 쿨링팬 ON
-    private final boolean coolingFanOff;  // 온도 <= 하한 → 쿨링팬 OFF
-    private final boolean humidifierOn;   // 습도 >= 상한 → 가습기 ON
-    private final boolean humidifierOff;  // 습도 <= 하한 → 가습기 OFF
+    private final boolean coolingFanOn;      // 온도 >= 상한 → 쿨링팬 ON
+    private final boolean coolingFanOff;     // 온도 <= 하한 → 쿨링팬 OFF
+    private final boolean coolingFanMidOff;  // 온도 <= 중간값 → 쿨링팬 자동 OFF
+    private final boolean humidifierOn;      // 습도 <= 하한 → 가습기 ON (건조)
+    private final boolean humidifierOff;     // 습도 >= 상한 → 가습기 OFF
+    private final boolean humidifierMidOff;  // 습도 >= 중간값 → 가습기 자동 OFF
 
     private final String coolingMessage;
     private final String humidifierMessage;
 
     public boolean hasAlert() {
-        return coolingFanOn || coolingFanOff || humidifierOn || humidifierOff;
+        return coolingFanOn || coolingFanOff || coolingFanMidOff
+                || humidifierOn || humidifierOff || humidifierMidOff;
     }
 
     public boolean hasCoolingAlert() {
-        return coolingFanOn || coolingFanOff;
+        return coolingFanOn || coolingFanOff || coolingFanMidOff;
     }
 
     public boolean hasHumidifierAlert() {
-        return humidifierOn || humidifierOff;
+        return humidifierOn || humidifierOff || humidifierMidOff;
     }
 }

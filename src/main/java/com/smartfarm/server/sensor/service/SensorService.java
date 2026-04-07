@@ -1,5 +1,6 @@
 package com.smartfarm.server.sensor.service;
 
+import com.smartfarm.server.control.service.DeviceControlService;
 import com.smartfarm.server.device.dto.DeviceConfigView;
 import com.smartfarm.server.sensor.dto.SensorRequestDto;
 import com.smartfarm.server.sensor.dto.SensorResponseDto;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
 
 /**
  * 센서 데이터 처리 서비스 (Thin Service Pattern)
@@ -22,6 +25,7 @@ public class SensorService {
 
     private final SensorRedisRepository sensorRepository;
     private final DeviceConfigService deviceConfigService;
+    private final DeviceControlService deviceControlService;
     private final SensorValidator sensorValidator;
     private final SensorControlStrategy sensorControlStrategy;
     private final SensorAlertEventHandler sensorAlertEventHandler;
@@ -41,13 +45,16 @@ public class SensorService {
         // 3. 기기별 설정값 조회
         DeviceConfigView config = deviceConfigService.getDeviceConfig(sensorData.getDeviceId());
 
-        // 4. 제어 판단 (임계값 비교 및 경고 생성)
-        SensorAlert alert = sensorControlStrategy.determineControl(sensorData, config);
+        // 4. 현재 기기 ON/OFF 상태 조회 (midOff 조건 판단용)
+        Map<String, Boolean> deviceState = deviceControlService.getDeviceState(sensorData.getDeviceId());
 
-        // 5. 경고 처리 (제어 명령 발송, 알림, SSE 푸시)
+        // 5. 제어 판단 (임계값 비교 및 경고 생성)
+        SensorAlert alert = sensorControlStrategy.determineControl(sensorData, config, deviceState);
+
+        // 6. 경고 처리 (제어 명령 발송, 알림, SSE 푸시)
         sensorAlertEventHandler.handle(alert);
 
-        // 6. 응답 반환
+        // 7. 응답 반환
         return SensorResponseDto.builder()
                 .status("SUCCESS")
                 .message("Data processed successfully")

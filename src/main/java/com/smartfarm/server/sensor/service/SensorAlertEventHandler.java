@@ -41,14 +41,18 @@ public class SensorAlertEventHandler {
             discordNotificationService.sendAlertIfNotCoolingDown(deviceId, "TEMP_HIGH", msg);
         } else if (alert.isCoolingFanOff()) {
             deviceControlService.sendAutoCommand(deviceId, "COOLING_FAN_OFF");
+        } else if (alert.isCoolingFanMidOff()) {
+            deviceControlService.sendAutoCommand(deviceId, "COOLING_FAN_OFF");
         }
 
         // 2. 가습기 제어
         if (alert.isHumidifierOn()) {
             deviceControlService.sendAutoCommand(deviceId, "HUMIDIFIER_ON");
             String msg = String.format("💧 **[스마트팜 경고] %s 가습기 가동!**\n%s", deviceId, alert.getHumidifierMessage());
-            discordNotificationService.sendAlertIfNotCoolingDown(deviceId, "HUMIDITY_HIGH", msg);
+            discordNotificationService.sendAlertIfNotCoolingDown(deviceId, "HUMIDITY_LOW", msg);
         } else if (alert.isHumidifierOff()) {
+            deviceControlService.sendAutoCommand(deviceId, "HUMIDIFIER_OFF");
+        } else if (alert.isHumidifierMidOff()) {
             deviceControlService.sendAutoCommand(deviceId, "HUMIDIFIER_OFF");
         }
     }
