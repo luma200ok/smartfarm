@@ -92,9 +92,9 @@ _heater_active      = False
 _humidifier_active  = False
 
 # 제어 효과 상수 (매 3초 사이클 기준)
-_COOLING_DELTA    = 0.5   # 쿨링팬 ON 시 온도 감소량 (°C/사이클)
-_HEATING_DELTA    = 0.5   # 히터 ON 시 온도 증가량 (°C/사이클)
-_HUMIDIFIER_DELTA = 1.0   # 가습기 ON 시 습도 증가량 (%/사이클)
+_COOLING_DELTA    = 0.2   # 쿨링팬 ON 시 온도 감소량 (°C/사이클) — 3°C 변화 약 45초
+_HEATING_DELTA    = 0.2   # 히터 ON 시 온도 증가량 (°C/사이클)
+_HUMIDIFIER_DELTA = 0.4   # 가습기 ON 시 습도 증가량 (%/사이클)
 
 
 def _set_device_state(device: str, active: bool):
@@ -249,9 +249,9 @@ def get_sensor_data() -> dict:
     target_temp     = _TEMP_MIN + (_TEMP_MAX - _TEMP_MIN) * factor
     target_humidity = _HUMI_MAX - (_HUMI_MAX - _HUMI_MIN) * factor
 
-    # 현재값 → 목표값으로 수렴 (5%/사이클) + 미세 노이즈
-    _temp     = round(_temp     + (target_temp     - _temp)     * 0.05 + random.uniform(-0.2, 0.2), 1)
-    _humidity = round(_humidity + (target_humidity - _humidity) * 0.05 + random.uniform(-0.5, 0.5), 1)
+    # 현재값 → 목표값으로 수렴 (3%/사이클, 느린 자연 수렴) + 미세 노이즈
+    _temp     = round(_temp     + (target_temp     - _temp)     * 0.03 + random.uniform(-0.1, 0.1), 1)
+    _humidity = round(_humidity + (target_humidity - _humidity) * 0.03 + random.uniform(-0.3, 0.3), 1)
 
     # 기기 효과 누적 적용 (스레드 안전 읽기)
     with _device_state_lock:
