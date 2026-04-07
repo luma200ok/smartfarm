@@ -134,6 +134,9 @@ def listen_command_stream():
             client = sseclient.SSEClient(response)
             print(f"[SSE] 명령 스트림 연결 성공")
 
+            # 연결 성공 시 미처리 PENDING 명령 처리 (재연결 포함)
+            flush_pending_commands()
+
             for event in client.events():
                 if event.event == "connect":
                     print(f"[SSE] 서버 핸드셰이크 완료")

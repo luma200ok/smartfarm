@@ -3,6 +3,7 @@ package com.smartfarm.server.dashboard.controller;
 import com.smartfarm.server.dashboard.service.SseEmitterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +24,9 @@ public class SseController {
             summary = "대시보드 실시간 센서 데이터 구독",
             description = "브라우저에서 특정 기기의 센서 데이터를 실시간으로 수신합니다. 인증 필요.")
     @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribe(@RequestParam String deviceId) {
+    public SseEmitter subscribe(@RequestParam String deviceId, HttpServletResponse response) {
+        response.setHeader("X-Accel-Buffering", "no");
+        response.setHeader("Cache-Control", "no-cache");
         return sseEmitterService.subscribe(deviceId);
     }
 
@@ -34,7 +37,9 @@ public class SseController {
                         + "PC 클라이언트는 명령 수신 후 /api/device-control/ack 로 실행 확인을 전송해야 합니다. "
                         + "인증 불필요 (PC 클라이언트 전용).")
     @GetMapping(value = "/device-command-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribeDeviceCommandStream(@RequestParam String deviceId) {
+    public SseEmitter subscribeDeviceCommandStream(@RequestParam String deviceId, HttpServletResponse response) {
+        response.setHeader("X-Accel-Buffering", "no");
+        response.setHeader("Cache-Control", "no-cache");
         return sseEmitterService.subscribeDevice(deviceId);
     }
 }
