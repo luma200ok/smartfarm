@@ -50,8 +50,9 @@ public class DataBatchService {
                     .filter(data -> data != null && data.getDeviceId() != null)
                     .collect(Collectors.toList());
 
+            log.info("[BATCH TASK] Redis에서 읽은 유효 데이터 수: {}", validDataList.size());
             if (validDataList.isEmpty()) {
-                log.info("[BATCH TASK] 집계할 센서 데이터가 없습니다.");
+                log.warn("[BATCH TASK] 집계할 센서 데이터가 없습니다. Redis가 비어있거나 sensor_agent가 미실행 중일 수 있습니다.");
                 return;
             }
 
@@ -92,6 +93,9 @@ public class DataBatchService {
 
             // 4. MySQL에 집계된 평균 데이터를 저장 (디바이스당 1건씩만 Insert 됨)
             mysqlRepository.saveAll(historyListToSave);
+            // flush()로 INSERT SQL을 즉시 실행: Redis 삭제 전에 DB 오류를 확인하기 위함
+            // (saveAll은 JPA 1차 캐시에만 큐잉 → 커밋 시점에 실행되면 Redis 삭제 후 실패 가능)
+            mysqlRepository.flush();
             log.info("[BATCH TASK] {}개 디바이스의 평균 데이터를 MySQL에 저장했습니다.", historyListToSave.size());
 
             // 5. 이관 및 집계가 끝난 원본 데이터는 Redis에서 삭제 (메모리 확보)

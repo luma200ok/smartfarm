@@ -17,6 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -95,12 +97,19 @@ public class DeviceControlService {
 
         DeviceControlCommandResponseDto response = DeviceControlCommandResponseDto.from(command);
 
-        // PC 클라이언트가 SSE로 연결되어 있으면 즉시 푸시
-        // 연결 안 되어 있어도 DB PENDING 상태로 유지되므로 클라이언트 재연결 시 폴링으로 수령 가능
-        boolean pushed = sseEmitterService.sendCommandToDevice(deviceId, response);
-        if (!pushed) {
-            log.info("[DeviceControl] {} SSE 미연결 — 명령(id={}) DB PENDING 상태로 보존됩니다.", deviceId, command.getId());
-        }
+        // 트랜잭션 커밋 완료 후 SSE 푸시 (레이스 컨디션 방지)
+        // sensor_agent가 동일 EC2에서 실행되므로 ACK가 커밋 전에 도달할 수 있음
+        // → acknowledgeCommand()의 findById()가 미커밋 행을 못 읽어 COMMAND_NOT_FOUND 발생 방지
+        final long commandId = command.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                boolean pushed = sseEmitterService.sendCommandToDevice(deviceId, response);
+                if (!pushed) {
+                    log.info("[DeviceControl] {} SSE 미연결 — 명령(id={}) DB PENDING 상태로 보존됩니다.", deviceId, commandId);
+                }
+            }
+        });
 
         return response;
     }
@@ -149,10 +158,17 @@ public class DeviceControlService {
 
         DeviceControlCommandResponseDto response = DeviceControlCommandResponseDto.from(command);
 
-        boolean pushed = sseEmitterService.sendCommandToDevice(deviceId, response);
-        if (!pushed) {
-            log.info("[AutoControl] {} SSE 미연결 — 자동 명령(id={}) DB PENDING 상태로 보존됩니다.", deviceId, command.getId());
-        }
+        // 트랜잭션 커밋 완료 후 SSE 푸시 (레이스 컨디션 방지)
+        final long commandId = command.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                boolean pushed = sseEmitterService.sendCommandToDevice(deviceId, response);
+                if (!pushed) {
+                    log.info("[AutoControl] {} SSE 미연결 — 자동 명령(id={}) DB PENDING 상태로 보존됩니다.", deviceId, commandId);
+                }
+            }
+        });
     }
 
     /**
