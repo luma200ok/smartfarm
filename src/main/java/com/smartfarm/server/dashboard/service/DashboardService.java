@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -50,27 +51,32 @@ public class DashboardService {
         return eventLogRepository.findByDeviceIdOrderByTimestampDesc(deviceId, pageable);
     }
 
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     public SensorStatisticsDto getTodayStatistics(String deviceId) {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay   = LocalDate.now().atTime(23, 59, 59, 999999999);
+        LocalDate today = LocalDate.now(KST);
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay   = today.atTime(23, 59, 59, 999999999);
         return historyRepository.getSensorStatistics(deviceId, startOfDay, endOfDay);
     }
 
     public List<DailyStatisticsDto> getDailyTrend(String deviceId, int days) {
-        LocalDateTime start = LocalDate.now().minusDays(days - 1L).atStartOfDay();
-        LocalDateTime end   = LocalDate.now().atTime(23, 59, 59, 999999999);
+        LocalDate today = LocalDate.now(KST);
+        LocalDateTime start = today.minusDays(days - 1L).atStartOfDay();
+        LocalDateTime end   = today.atTime(23, 59, 59, 999999999);
         return historyRepository.getDailyStatistics(deviceId, start, end);
     }
 
     public long getAlertCount(String deviceId, int days) {
-        LocalDateTime start = LocalDateTime.now().minusDays(days);
-        LocalDateTime end   = LocalDateTime.now();
+        LocalDateTime start = LocalDateTime.now(KST).minusDays(days);
+        LocalDateTime end   = LocalDateTime.now(KST);
         return eventLogRepository.countByDeviceIdAndTimestampBetween(deviceId, start, end);
     }
 
     public List<DeviceComparisonDto> getAllDevicesComparison() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay   = LocalDate.now().atTime(23, 59, 59, 999999999);
+        LocalDate today = LocalDate.now(KST);
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay   = today.atTime(23, 59, 59, 999999999);
 
         List<DeviceConfig> configs = deviceConfigRepository.findAll();
         if (configs.isEmpty()) {
