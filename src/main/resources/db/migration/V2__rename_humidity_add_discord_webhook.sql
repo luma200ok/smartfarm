@@ -1,7 +1,3 @@
--- Phase 1: humidity_threshold_high → mem_usage_threshold_high
-ALTER TABLE device_config
-    CHANGE COLUMN humidity_threshold_high mem_usage_threshold_high DOUBLE NOT NULL;
-
--- Phase 2: 기기별 Discord 웹훅 URL 컬럼 추가
-ALTER TABLE device_config
-    ADD COLUMN discord_webhook_url VARCHAR(500) NULL;
+-- mem_usage_threshold_high, discord_webhook_url 컬럼은 Hibernate ddl-auto에 의해 이미 생성됨
+-- humidity_threshold_high 고아 컬럼만 제거
+ALTER TABLE device_config DROP COLUMN humidity_threshold_high;

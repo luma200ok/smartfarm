@@ -75,7 +75,30 @@
         </div>
         <button type="submit" class="btn btn-primary w-100">로그인</button>
     </form>
+
+    <div class="mt-4 p-3" style="background-color:#0f172a; border:1px solid #334155; border-radius:8px;">
+        <p class="text-center mb-2" style="color:#64748b; font-size:0.8rem;">테스트 계정</p>
+        <div class="d-flex justify-content-around align-items-center">
+            <div class="text-center" style="cursor:pointer;" onclick="fillCredentials('admin','admin1234')">
+                <span class="badge" style="background-color:#1d4ed8; font-size:0.7rem;">ADMIN</span>
+                <p class="mb-0 mt-1" style="color:#94a3b8; font-size:0.8rem;">admin / admin1234</p>
+            </div>
+            <div style="border-left:1px solid #334155; height:36px;"></div>
+            <div class="text-center" style="cursor:pointer;" onclick="fillCredentials('user','user1234')">
+                <span class="badge" style="background-color:#065f46; font-size:0.7rem;">USER</span>
+                <p class="mb-0 mt-1" style="color:#94a3b8; font-size:0.8rem;">user / user1234</p>
+            </div>
+        </div>
+        <p class="text-center mb-0 mt-2" style="color:#475569; font-size:0.7rem;">클릭하면 자동 입력됩니다</p>
+    </div>
 </div>
+
+<script>
+    function fillCredentials(username, password) {
+        document.getElementById('username').value = username;
+        document.getElementById('password').value = password;
+    }
+</script>
 
 </body>
 </html>

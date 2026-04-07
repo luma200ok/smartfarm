@@ -1,7 +1,7 @@
 -- 감사 로그 테이블 생성
 -- API 키 갱신, 인증 실패, 권한 거부, 어드민 작업 등 보안 관련 이벤트를 기록합니다.
 
-CREATE TABLE audit_log (
+CREATE TABLE IF NOT EXISTS audit_log (
     id BIGINT NOT NULL AUTO_INCREMENT,
     event_type VARCHAR(50) NOT NULL COMMENT '감사 이벤트 타입 (API_KEY_GENERATED, API_KEY_RENEWED, AUTH_FAILURE, PERMISSION_DENIED, ADMIN_ACTION, DEVICE_CONFIG_CHANGED)',
     user_id BIGINT COMMENT '관련 사용자 ID (PC 클라이언트의 경우 null)',

@@ -15,6 +15,9 @@ spring:
     password: ${MYSQL_PASSWORD} 
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  flyway:
+    baseline-on-migrate: true
+
   jpa:
     hibernate:
       ddl-auto: update # 로컬에서는 개발 편의를 위해 테이블 자동 업데이트를 켭니다.
