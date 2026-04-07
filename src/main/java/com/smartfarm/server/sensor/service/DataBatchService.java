@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -75,8 +76,8 @@ public class DataBatchService {
                         .average()
                         .orElse(0.0);
 
-                // 현재 집계가 끝난 시점의 시간을 기록합니다.
-                LocalDateTime now = LocalDateTime.now();
+                // 현재 집계가 끝난 시점의 시간을 KST 기준으로 기록합니다.
+                LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
 
                 // 집계된 '평균값'을 가진 1개의 행(Row) 생성
                 SensorHistory averageHistory = SensorHistory.builder()
@@ -108,7 +109,7 @@ public class DataBatchService {
      */
     @Scheduled(cron = "${smartfarm.batch.report-cron}")
     public void sendDailyReport() {
-        LocalDate yesterday    = LocalDate.now().minusDays(1);
+        LocalDate yesterday    = LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1);
         LocalDateTime dayStart = yesterday.atStartOfDay();
         LocalDateTime dayEnd   = yesterday.atTime(23, 59, 59, 999_999_999);
 
@@ -153,7 +154,7 @@ public class DataBatchService {
     @Transactional
     @Scheduled(cron = "0 0 2 * * *")
     public void deleteOldSensorHistory() {
-        LocalDateTime cutoff = LocalDateTime.now().minusMonths(1);
+        LocalDateTime cutoff = LocalDateTime.now(ZoneId.of("Asia/Seoul")).minusMonths(1);
         log.info("[BATCH TASK] 데이터 보존 정책 실행 - {}  이전 데이터 삭제 시작", cutoff);
         mysqlRepository.deleteByTimestampBefore(cutoff);
         log.info("[BATCH TASK] 1개월 이상 지난 SensorHistory 데이터 삭제 완료");
@@ -166,7 +167,7 @@ public class DataBatchService {
     @Transactional
     @Scheduled(cron = "0 0 3 * * *")
     public void hardDeleteSoftDeletedHistory() {
-        LocalDateTime cutoff = LocalDateTime.now().minusWeeks(1);
+        LocalDateTime cutoff = LocalDateTime.now(ZoneId.of("Asia/Seoul")).minusWeeks(1);
         log.info("[BATCH TASK] 소프트 딜리트 데이터 정리 실행 - {} 이전 소프트 딜리트 데이터 하드 딜리트 시작", cutoff);
         mysqlRepository.deleteByDeletedAtBefore(cutoff);
         log.info("[BATCH TASK] 소프트 딜리트된 지 1주일 이상 지난 SensorHistory 데이터 하드 딜리트 완료");
