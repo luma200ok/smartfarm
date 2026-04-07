@@ -1882,8 +1882,23 @@
         loadAlertCount(7);
         loadComparison();
         loadControlHistory();
+        loadDeviceState(currentDeviceId);
         connectSSE(currentDeviceId);
     });
+
+    // ─── 기기 상태 초기화 (페이지 새로고침 복원용) ──────────────
+    async function loadDeviceState(deviceId) {
+        try {
+            const res = await fetch(`/api/device-control/state?deviceId=${encodeURIComponent(deviceId)}`);
+            if (!res.ok) return;
+            const state = await res.json();
+            coolingFanActive  = state.coolingFanOn  ?? false;
+            humidifierActive  = state.humidifierOn  ?? false;
+            updateDeviceStatePills(coolingFanActive, humidifierActive);
+        } catch (e) {
+            console.warn('기기 상태 조회 실패:', e);
+        }
+    }
 
     // ─── 기기 목록 동적 로드 ─────────────────────────────────────
     async function loadDevices() {
@@ -2053,7 +2068,8 @@
                 loadTrend(7),
                 loadAlertCount(7),
                 loadComparison(),
-                loadControlHistory()
+                loadControlHistory(),
+                loadDeviceState(currentDeviceId)
             ]);
             connectSSE(currentDeviceId);
         }

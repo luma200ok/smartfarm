@@ -16,11 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
 
 @Slf4j
 @Service
@@ -33,80 +33,49 @@ public class DataBatchService {
     private final DiscordNotificationService discordNotificationService;
 
     /**
-     * @Scheduled를 사용한 주기적 작업
+     * @Transactional에 의해 MySQL 예외 발생 시 자동 롤백됩니다.
+     * flush()로 INSERT SQL을 먼저 실행 후 Redis 삭제 — DB 오류가 있으면 Redis 삭제 없이 롤백됩니다.
      * application.yaml의 smartfarm.batch.interval-ms 값을 주기로 사용합니다. (기본 60,000ms = 1분)
      */
-    @Transactional // MySQL 저장 중 에러가 발생하면 롤백하고, Redis 데이터 삭제를 방지합니다.
-    @Scheduled(fixedDelayString = "${smartfarm.batch.interval-ms}") 
+    @Transactional
+    @Scheduled(fixedDelayString = "${smartfarm.batch.interval-ms}")
     public void migrateDataFromRedisToMySql() {
-        log.info("[BATCH TASK] 주기적 데이터 평균 집계 및 이관 시작 - Redis -> MySQL");
-        
-        try {
-            // 1. MySQL DeviceConfig에서 등록된 deviceId 목록을 조회한 뒤,
-            //    각 deviceId로 Redis에서 직접 조회합니다.
-            //    (Spring Data Redis findAll()은 내부 인덱스 SET에 의존하는데,
-            //     해당 SET이 비어있는 경우 데이터를 찾지 못하는 문제가 있음)
-            List<String> deviceIds = deviceConfigRepository.findAllDeviceIds();
-            List<SensorData> validDataList = deviceIds.stream()
-                    .map(id -> redisRepository.findById(id).orElse(null))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+        log.info("[BATCH TASK] 주기적 데이터 이관 시작 - Redis -> MySQL");
 
-            log.info("[BATCH TASK] Redis에서 읽은 유효 데이터 수: {}", validDataList.size());
-            if (validDataList.isEmpty()) {
-                log.warn("[BATCH TASK] 집계할 센서 데이터가 없습니다. Redis가 비어있거나 sensor_agent가 미실행 중일 수 있습니다.");
-                return;
-            }
+        // 1. MySQL DeviceConfig에서 등록된 deviceId별로 Redis에서 직접 조회합니다.
+        //    (Spring Data Redis findAll()은 내부 인덱스 SET에 의존하는데,
+        //     해당 SET이 비어있으면 데이터를 찾지 못하는 문제가 있어 findById()로 직접 조회)
+        List<String> deviceIds = deviceConfigRepository.findAllDeviceIds();
+        List<SensorData> validDataList = deviceIds.stream()
+                .map(id -> redisRepository.findById(id).orElse(null))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
-            // 2. 디바이스 ID를 기준으로 그룹화 (Grouping)
-            Map<String, List<SensorData>> groupedByDevice = validDataList.stream()
-                    .collect(Collectors.groupingBy(SensorData::getDeviceId));
-
-            List<SensorHistory> historyListToSave = new ArrayList<>();
-
-            // 3. 각 디바이스별로 평균값(온도, 메모리 사용률)을 계산하여 하나의 History 엔티티로 만듭니다.
-            for (Map.Entry<String, List<SensorData>> entry : groupedByDevice.entrySet()) {
-                String deviceId = entry.getKey();
-                List<SensorData> deviceDataList = entry.getValue();
-
-                double avgTemperature = deviceDataList.stream()
-                        .mapToDouble(SensorData::getTemperature)
-                        .average()
-                        .orElse(0.0);
-
-                double avgHumidity = deviceDataList.stream()
-                        .mapToDouble(SensorData::getHumidity)
-                        .average()
-                        .orElse(0.0);
-
-                // 현재 집계가 끝난 시점의 시간을 KST 기준으로 기록합니다.
-                LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
-
-                // 집계된 '평균값'을 가진 1개의 행(Row) 생성
-                SensorHistory averageHistory = SensorHistory.builder()
-                        .deviceId(deviceId)
-                        .temperature(Math.round(avgTemperature * 10.0) / 10.0) // 소수점 첫째 자리까지만 남김
-                        .humidity(Math.round(avgHumidity * 10.0) / 10.0)
-                        .timestamp(now)
-                        .build();
-
-                historyListToSave.add(averageHistory);
-            }
-
-            // 4. MySQL에 집계된 평균 데이터를 저장 (디바이스당 1건씩만 Insert 됨)
-            mysqlRepository.saveAll(historyListToSave);
-            // flush()로 INSERT SQL을 즉시 실행: Redis 삭제 전에 DB 오류를 확인하기 위함
-            // (saveAll은 JPA 1차 캐시에만 큐잉 → 커밋 시점에 실행되면 Redis 삭제 후 실패 가능)
-            mysqlRepository.flush();
-            log.info("[BATCH TASK] {}개 디바이스의 평균 데이터를 MySQL에 저장했습니다.", historyListToSave.size());
-
-            // 5. 이관 및 집계가 끝난 원본 데이터는 Redis에서 삭제 (메모리 확보)
-            redisRepository.deleteAll(validDataList);
-            log.info("[BATCH TASK] 집계 완료된 {}개의 원본 데이터를 Redis에서 삭제했습니다.", validDataList.size());
-            
-        } catch (Exception e) {
-            log.error("[BATCH TASK] 데이터 집계/이관 중 오류 발생: {}", e.getMessage(), e);
+        log.info("[BATCH TASK] Redis에서 읽은 유효 데이터 수: {}", validDataList.size());
+        if (validDataList.isEmpty()) {
+            log.warn("[BATCH TASK] 집계할 센서 데이터가 없습니다. Redis가 비어있거나 sensor_agent가 미실행 중일 수 있습니다.");
+            return;
         }
+
+        // 2. Redis의 최신 스냅샷(기기당 1건)을 그대로 SensorHistory로 변환합니다.
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        List<SensorHistory> historyListToSave = validDataList.stream()
+                .map(data -> SensorHistory.builder()
+                        .deviceId(data.getDeviceId())
+                        .temperature(Math.round(data.getTemperature() * 10.0) / 10.0)
+                        .humidity(Math.round(data.getHumidity() * 10.0) / 10.0)
+                        .timestamp(now)
+                        .build())
+                .collect(Collectors.toList());
+
+        // 3. MySQL에 저장 후 flush()로 INSERT SQL 즉시 실행 (Redis 삭제 전에 DB 오류 확인)
+        mysqlRepository.saveAll(historyListToSave);
+        mysqlRepository.flush();
+        log.info("[BATCH TASK] {}개 디바이스 데이터를 MySQL에 저장했습니다.", historyListToSave.size());
+
+        // 4. 이관 완료된 원본 데이터는 Redis에서 삭제 (메모리 확보)
+        redisRepository.deleteAll(validDataList);
+        log.info("[BATCH TASK] {}개의 원본 데이터를 Redis에서 삭제했습니다.", validDataList.size());
     }
 
     /**
@@ -126,11 +95,15 @@ public class DataBatchService {
             return;
         }
 
+        // 단일 쿼리로 모든 기기의 통계를 한 번에 조회 (N+1 방지)
+        Map<String, SensorStatisticsDto> statsMap =
+                mysqlRepository.getAllDevicesStatistics(deviceIds, dayStart, dayEnd);
+
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("📊 **[스마트팜 일간 리포트] %s**\n", yesterday));
 
         for (String deviceId : deviceIds) {
-            SensorStatisticsDto stats = mysqlRepository.getSensorStatistics(deviceId, dayStart, dayEnd);
+            SensorStatisticsDto stats = statsMap.get(deviceId);
 
             if (stats == null) {
                 sb.append(String.format("\n🖥️ **%s** — 데이터 없음\n", deviceId));

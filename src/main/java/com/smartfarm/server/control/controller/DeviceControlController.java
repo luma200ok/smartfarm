@@ -7,6 +7,7 @@ import com.smartfarm.server.control.service.DeviceControlService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "4. 원격 제어 API",
         description = "대시보드에서 기기(쿨링팬/히터)를 수동으로 On/Off 제어하고, PC 클라이언트가 SSE 스트림으로 명령을 수신하는 API")
@@ -31,7 +33,7 @@ public class DeviceControlController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/command")
     public ResponseEntity<DeviceControlCommandResponseDto> sendCommand(
-            @RequestBody DeviceControlCommandRequestDto request) {
+            @Valid @RequestBody DeviceControlCommandRequestDto request) {
         return ResponseEntity.ok(deviceControlService.sendCommand(request));
     }
 
@@ -50,8 +52,19 @@ public class DeviceControlController {
             description = "PC 클라이언트가 명령을 수신하고 실행한 후 서버에 완료를 알립니다.")
     @PostMapping("/ack")
     public ResponseEntity<DeviceControlCommandResponseDto> acknowledgeCommand(
-            @RequestBody CommandAckRequestDto request) {
+            @Valid @RequestBody CommandAckRequestDto request) {
         return ResponseEntity.ok(deviceControlService.acknowledgeCommand(request));
+    }
+
+    @Operation(summary = "기기 현재 상태 조회",
+            description = "대시보드 페이지 로드 시 쿨링팬·가습기의 현재 ON/OFF 상태를 반환합니다. "
+                    + "가장 최근 ACKNOWLEDGED 명령 타입으로 상태를 결정합니다.")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/state")
+    public ResponseEntity<Map<String, Boolean>> getDeviceState(
+            @Parameter(description = "기기 ID", example = "WINDOWS_PC_01")
+            @RequestParam String deviceId) {
+        return ResponseEntity.ok(deviceControlService.getDeviceState(deviceId));
     }
 
     @Operation(summary = "제어 명령 이력 조회",

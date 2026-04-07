@@ -117,7 +117,8 @@ public class GlobalExceptionHandler {
      * 브라우저가 페이지를 닫으면 발생하며, 에러 응답을 쓸 수 없으므로 반환값 없음
      */
     @ExceptionHandler(org.springframework.web.context.request.async.AsyncRequestNotUsableException.class)
-    protected void handleAsyncRequestNotUsableException(Exception e) {
+    protected void handleAsyncRequestNotUsableException(
+            org.springframework.web.context.request.async.AsyncRequestNotUsableException e) {
         log.debug("SSE client disconnected (Broken pipe) — 정상 종료");
     }
 
@@ -127,7 +128,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("Unhandled Exception: {}", e.getMessage(), e);
-        ErrorResponse response = ErrorResponse.of(ErrorCode.INTERNAL_SERVER_ERROR, e.getMessage());
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INTERNAL_SERVER_ERROR);
         return new ResponseEntity<>(response, ErrorCode.INTERNAL_SERVER_ERROR.getStatus());
     }
 

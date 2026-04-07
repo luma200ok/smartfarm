@@ -36,4 +36,13 @@ public class ErrorResponse {
                 .message(customMessage)
                 .build();
     }
+
+    public static ErrorResponse of(ErrorCode errorCode) {
+        return ErrorResponse.builder()
+                .status(errorCode.getStatus().value())
+                .error(errorCode.getStatus().name())
+                .code(errorCode.getCode())
+                .message(errorCode.getMessage())
+                .build();
+    }
 }

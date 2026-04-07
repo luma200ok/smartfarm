@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface DeviceControlCommandRepository extends JpaRepository<DeviceControlCommand, Long> {
@@ -23,6 +24,10 @@ public interface DeviceControlCommandRepository extends JpaRepository<DeviceCont
 
     /** 특정 기기의 전체 명령 이력 (최신순 페이징) */
     Page<DeviceControlCommand> findByDeviceIdOrderByCreatedAtDesc(String deviceId, Pageable pageable);
+
+    /** 특정 기기의 특정 명령 타입 중 가장 최근 ACKNOWLEDGED 명령 조회 (기기 상태 복원용) */
+    Optional<DeviceControlCommand> findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
+            String deviceId, List<String> commandTypes, CommandStatus status);
 
     /** 특정 기기의 PENDING 명령 전체를 CANCELLED로 일괄 변경 */
     @Modifying

@@ -22,6 +22,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -54,13 +56,10 @@ public class DeviceControlService {
      */
     @Transactional
     public DeviceControlCommandResponseDto sendCommand(DeviceControlCommandRequestDto request) {
-        String deviceId    = request.getDeviceId();
-        String commandType = request.getCommandType();
+        String deviceId    = request.deviceId();
+        String commandType = request.commandType();
 
-        if (deviceId == null || deviceId.isBlank()) {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-        if (commandType == null || !VALID_COMMAND_TYPES.contains(commandType)) {
+        if (!VALID_COMMAND_TYPES.contains(commandType)) {
             throw new CustomException(ErrorCode.INVALID_COMMAND_TYPE);
         }
 
@@ -188,7 +187,7 @@ public class DeviceControlService {
      */
     @Transactional
     public DeviceControlCommandResponseDto acknowledgeCommand(CommandAckRequestDto request) {
-        DeviceControlCommand command = commandRepository.findById(request.getCommandId())
+        DeviceControlCommand command = commandRepository.findById(request.commandId())
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMAND_NOT_FOUND));
         command.acknowledge();
         DeviceControlCommandResponseDto response = DeviceControlCommandResponseDto.from(command);
@@ -213,5 +212,30 @@ public class DeviceControlService {
     @Transactional
     public void cancelAllPending(String deviceId) {
         commandRepository.cancelAllPendingByDeviceId(deviceId);
+    }
+
+    /**
+     * 특정 기기의 현재 쿨링팬/가습기 상태를 반환합니다.
+     * 가장 최근 ACKNOWLEDGED 명령 타입으로 ON/OFF 여부를 판단합니다.
+     * 대시보드 페이지 새로고침 시 표시등 초기화에 사용됩니다.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Boolean> getDeviceState(String deviceId) {
+        Optional<DeviceControlCommand> latestFan = commandRepository
+                .findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
+                        deviceId, List.of("COOLING_FAN_ON", "COOLING_FAN_OFF"), CommandStatus.ACKNOWLEDGED);
+
+        Optional<DeviceControlCommand> latestHumidifier = commandRepository
+                .findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
+                        deviceId, List.of("HUMIDIFIER_ON", "HUMIDIFIER_OFF"), CommandStatus.ACKNOWLEDGED);
+
+        boolean coolingFanOn = latestFan
+                .map(c -> "COOLING_FAN_ON".equals(c.getCommandType()))
+                .orElse(false);
+        boolean humidifierOn = latestHumidifier
+                .map(c -> "HUMIDIFIER_ON".equals(c.getCommandType()))
+                .orElse(false);
+
+        return Map.of("coolingFanOn", coolingFanOn, "humidifierOn", humidifierOn);
     }
 }

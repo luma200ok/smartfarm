@@ -1,18 +1,17 @@
 package com.smartfarm.server.control.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
 
-@Getter
-@NoArgsConstructor
 @Schema(description = "원격 제어 명령 발송 요청 DTO")
-public class DeviceControlCommandRequestDto {
+public record DeviceControlCommandRequestDto(
 
-    @Schema(description = "제어 대상 기기 ID", example = "WINDOWS_PC_01")
-    private String deviceId;
+        @NotBlank(message = "deviceId는 필수입니다.")
+        @Schema(description = "제어 대상 기기 ID", example = "WINDOWS_PC_01")
+        String deviceId,
 
-    @Schema(description = "명령 종류 (COOLING_FAN_ON / COOLING_FAN_OFF / HEATER_ON / HEATER_OFF)",
-            example = "COOLING_FAN_ON")
-    private String commandType;
-}
+        @NotBlank(message = "commandType은 필수입니다.")
+        @Schema(description = "명령 종류 (COOLING_FAN_ON / COOLING_FAN_OFF / HUMIDIFIER_ON / HUMIDIFIER_OFF)",
+                example = "COOLING_FAN_ON")
+        String commandType
+) {}
