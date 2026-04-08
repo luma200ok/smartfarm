@@ -54,13 +54,17 @@ public class SensorService {
         // 6. 경고 처리 (제어 명령 발송, 알림, SSE 푸시)
         sensorAlertEventHandler.handle(alert, deviceState);
 
-        // 7. 응답 반환
+        // 7. 응답 반환 — SSE와 동일하게 alert 없는 구간에는 deviceState fallback 사용
+        boolean fanOn  = alert.isCoolingFanOn()  || (!alert.isCoolingFanOff()  && !alert.isCoolingFanMidOff()  && deviceState.getOrDefault("coolingFanOn",  false));
+        boolean htrOn  = alert.isHeaterOn()       || (!alert.isHeaterOff()      && !alert.isHeaterMidOff()      && deviceState.getOrDefault("heaterOn",      false));
+        boolean humiOn = alert.isHumidifierOn()   || (!alert.isHumidifierOff()  && !alert.isHumidifierMidOff()  && deviceState.getOrDefault("humidifierOn",  false));
+
         return SensorResponseDto.builder()
                 .status("SUCCESS")
                 .message("Data processed successfully")
-                .coolingFanOn(alert.isCoolingFanOn())
-                .heaterOn(alert.isHeaterOn())
-                .humidifierOn(alert.isHumidifierOn())
+                .coolingFanOn(fanOn)
+                .heaterOn(htrOn)
+                .humidifierOn(humiOn)
                 .build();
     }
 }

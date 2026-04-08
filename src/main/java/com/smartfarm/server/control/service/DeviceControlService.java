@@ -27,6 +27,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -229,8 +231,9 @@ public class DeviceControlService {
                 "HEATER_ON", "HEATER_OFF",
                 "HUMIDIFIER_ON", "HUMIDIFIER_OFF"
         );
+        // 기기 유형 3종 × ON/OFF 2종 = 최대 6건으로 상태 판단에 충분
         List<DeviceControlCommand> commands = commandRepository
-                .findAllAcknowledgedByDeviceIdAndTypes(deviceId, CommandStatus.ACKNOWLEDGED, allTypes);
+                .findAllAcknowledgedByDeviceIdAndTypes(deviceId, CommandStatus.ACKNOWLEDGED, allTypes, PageRequest.of(0, 6));
 
         boolean coolingFanOn = commands.stream()
                 .filter(c -> c.getCommandType().startsWith("COOLING_FAN"))

@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +34,7 @@ public interface DeviceControlCommandRepository extends JpaRepository<DeviceCont
     /**
      * 기기의 모든 기기 유형(쿨링팬/히터/가습기) ACKNOWLEDGED 명령을 최신순으로 조회합니다.
      * getDeviceState() 에서 3개의 별도 쿼리 대신 단일 쿼리로 일관된 상태를 조회하는 데 사용합니다.
+     * 기기 유형 3종 × ON/OFF 2종 = 최대 6건이면 상태 판단에 충분하므로 Pageable로 상한을 제한합니다.
      */
     @Query("""
         SELECT c FROM DeviceControlCommand c
@@ -44,7 +46,8 @@ public interface DeviceControlCommandRepository extends JpaRepository<DeviceCont
     List<DeviceControlCommand> findAllAcknowledgedByDeviceIdAndTypes(
             @Param("deviceId") String deviceId,
             @Param("status") CommandStatus status,
-            @Param("commandTypes") List<String> commandTypes);
+            @Param("commandTypes") Collection<String> commandTypes,
+            Pageable pageable);
 
     /** 특정 기기의 PENDING 명령 전체를 CANCELLED로 일괄 변경 */
     @Modifying
