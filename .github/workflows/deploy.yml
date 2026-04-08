@@ -105,6 +105,8 @@ jobs:
             cd /home/ec2-user/smartfarm
 
             nohup java -jar \
+            -Xmx192m \
+            -XX:+UseSerialGC \
             -Dspring.profiles.active=prod \
             -Dserver.port=${SERVER_PORT} \
             "$7" > /home/ec2-user/smartfarm/app-$6.log 2>&1 &
