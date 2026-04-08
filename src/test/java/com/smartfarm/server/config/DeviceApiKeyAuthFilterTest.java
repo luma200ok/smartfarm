@@ -80,7 +80,7 @@ class DeviceApiKeyAuthFilterTest {
         mockMvc.perform(post(PROTECTED_ENDPOINT)
                 .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, testApiKey)
                 .contentType("application/json")
-                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"mem_usage\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
                 .andExpect(status().isUnauthorized());
 
         // Then: 감사 로그에 인증 실패가 기록되어야 함
@@ -99,7 +99,7 @@ class DeviceApiKeyAuthFilterTest {
         mockMvc.perform(post(PROTECTED_ENDPOINT)
                 .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, TEST_DEVICE_ID)
                 .contentType("application/json")
-                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"mem_usage\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
                 .andExpect(status().isUnauthorized());
 
         // Then: 감사 로그에 인증 실패가 기록되어야 함
@@ -119,7 +119,7 @@ class DeviceApiKeyAuthFilterTest {
                 .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, "   ")
                 .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, testApiKey)
                 .contentType("application/json")
-                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"mem_usage\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
                 .andExpect(status().isUnauthorized());
 
         // Then: 감사 로그에 인증 실패가 기록되어야 함
@@ -135,7 +135,7 @@ class DeviceApiKeyAuthFilterTest {
                 .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, TEST_DEVICE_ID)
                 .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, "   ")
                 .contentType("application/json")
-                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"mem_usage\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
                 .andExpect(status().isUnauthorized());
 
         // Then: 감사 로그에 인증 실패가 기록되어야 함
@@ -152,7 +152,7 @@ class DeviceApiKeyAuthFilterTest {
                 .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, TEST_DEVICE_ID)
                 .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, invalidApiKey)
                 .contentType("application/json")
-                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"mem_usage\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
                 .andExpect(status().isUnauthorized());
 
         // Then: 감사 로그에 인증 실패가 기록되어야 함
@@ -176,7 +176,7 @@ class DeviceApiKeyAuthFilterTest {
                 .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, unknownDeviceId)
                 .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, anyApiKey)
                 .contentType("application/json")
-                .content("{\"deviceId\":\"UNKNOWN-DEVICE-123\",\"cpu_temperature\":25.5,\"mem_usage\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                .content("{\"deviceId\":\"UNKNOWN-DEVICE-123\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
                 .andExpect(status().isUnauthorized());
 
         // Then: 감사 로그에 인증 실패가 기록되어야 함
@@ -195,7 +195,7 @@ class DeviceApiKeyAuthFilterTest {
                 .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, TEST_DEVICE_ID)
                 .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, testApiKey)
                 .contentType("application/json")
-                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"mem_usage\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
                 // 인증이 통과되면 컨트롤러로 진행되어 200 OK 반환 또는 다른 상태 코드
                 .andExpect(status().isOk()); // 또는 성공적으로 처리된 상태
 
@@ -214,7 +214,7 @@ class DeviceApiKeyAuthFilterTest {
                     .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, TEST_DEVICE_ID)
                     .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, invalidApiKey)
                     .contentType("application/json")
-                    .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"mem_usage\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                    .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
                     .andExpect(status().isUnauthorized());
         }
 
@@ -232,7 +232,7 @@ class DeviceApiKeyAuthFilterTest {
                 .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, "wrong-key")
                 .header("X-Forwarded-For", "192.168.1.100")
                 .contentType("application/json")
-                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"mem_usage\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                .content("{\"deviceId\":\"TEST-PC-001\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
                 .andExpect(status().isUnauthorized());
 
         // Then: 감사 로그에 클라이언트 IP가 기록되어야 함

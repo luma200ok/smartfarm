@@ -52,13 +52,14 @@ public class SensorService {
         SensorAlert alert = sensorControlStrategy.determineControl(sensorData, config, deviceState);
 
         // 6. 경고 처리 (제어 명령 발송, 알림, SSE 푸시)
-        sensorAlertEventHandler.handle(alert);
+        sensorAlertEventHandler.handle(alert, deviceState);
 
         // 7. 응답 반환
         return SensorResponseDto.builder()
                 .status("SUCCESS")
                 .message("Data processed successfully")
                 .coolingFanOn(alert.isCoolingFanOn())
+                .heaterOn(alert.isHeaterOn())
                 .humidifierOn(alert.isHumidifierOn())
                 .build();
     }

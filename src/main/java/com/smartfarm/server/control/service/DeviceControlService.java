@@ -224,26 +224,30 @@ public class DeviceControlService {
      */
     @Transactional(readOnly = true)
     public Map<String, Boolean> getDeviceState(String deviceId) {
-        Optional<DeviceControlCommand> latestFan = commandRepository
-                .findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
-                        deviceId, List.of("COOLING_FAN_ON", "COOLING_FAN_OFF"), CommandStatus.ACKNOWLEDGED);
+        List<String> allTypes = List.of(
+                "COOLING_FAN_ON", "COOLING_FAN_OFF",
+                "HEATER_ON", "HEATER_OFF",
+                "HUMIDIFIER_ON", "HUMIDIFIER_OFF"
+        );
+        List<DeviceControlCommand> commands = commandRepository
+                .findAllAcknowledgedByDeviceIdAndTypes(deviceId, CommandStatus.ACKNOWLEDGED, allTypes);
 
-        Optional<DeviceControlCommand> latestHeater = commandRepository
-                .findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
-                        deviceId, List.of("HEATER_ON", "HEATER_OFF"), CommandStatus.ACKNOWLEDGED);
-
-        Optional<DeviceControlCommand> latestHumidifier = commandRepository
-                .findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
-                        deviceId, List.of("HUMIDIFIER_ON", "HUMIDIFIER_OFF"), CommandStatus.ACKNOWLEDGED);
-
-        boolean coolingFanOn = latestFan
+        boolean coolingFanOn = commands.stream()
+                .filter(c -> c.getCommandType().startsWith("COOLING_FAN"))
                 .map(c -> "COOLING_FAN_ON".equals(c.getCommandType()))
+                .findFirst()
                 .orElse(false);
-        boolean heaterOn = latestHeater
+
+        boolean heaterOn = commands.stream()
+                .filter(c -> c.getCommandType().startsWith("HEATER"))
                 .map(c -> "HEATER_ON".equals(c.getCommandType()))
+                .findFirst()
                 .orElse(false);
-        boolean humidifierOn = latestHumidifier
+
+        boolean humidifierOn = commands.stream()
+                .filter(c -> c.getCommandType().startsWith("HUMIDIFIER"))
                 .map(c -> "HUMIDIFIER_ON".equals(c.getCommandType()))
+                .findFirst()
                 .orElse(false);
 
         return Map.of("coolingFanOn", coolingFanOn, "heaterOn", heaterOn, "humidifierOn", humidifierOn);
