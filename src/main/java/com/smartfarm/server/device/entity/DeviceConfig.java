@@ -85,12 +85,23 @@ public class DeviceConfig implements Serializable {
         this.humidityThresholdLow = humidityThresholdLow;
     }
 
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
+    }
+
     public void setDiscordWebhookUrl(String discordWebhookUrl) {
         this.discordWebhookUrl = discordWebhookUrl;
     }
 
-    /** API 키 재발급 */
-    public void regenerateApiKey() {
-        this.apiKey = UUID.randomUUID().toString();
+    /**
+     * API 키 재발급 — 평문 UUID를 생성합니다.
+     * 암호화는 {@code DeviceConfigService} 레이어에서 처리합니다.
+     *
+     * @return 새로 생성된 평문 UUID (암호화 전)
+     */
+    public String regenerateApiKey() {
+        String newKey = UUID.randomUUID().toString();
+        this.apiKey = newKey;
+        return newKey;
     }
 }

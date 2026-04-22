@@ -11,7 +11,7 @@
 
 🔗 **Swagger API**: [https://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html](https://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html)
 
-🔗 **Discord Webhook**:[https://discord.gg/a9VhVFbqnR](https://discord.gg/a9VhVFbqnR)
+🔗 **Discord 서버 초대 링크**:[https://discord.gg/a9VhVFbqnR](https://discord.gg/a9VhVFbqnR)
 
 🧪 **테스트 계정**
 ┣ ID: admin
@@ -228,6 +228,7 @@
 | 변수 | 설명 |
 |------|------|
 | `DISCORD_WEBHOOK_URL` | Discord 알림 웹훅 URL (미설정 시 알림 비활성화) |
+| `ENCRYPTION_SECRET_KEY` | DB 저장 시 API 키·웹훅 URL 암호화에 사용하는 비밀 키 (운영 환경 필수) |
 | `DB_HOST` | (운영) MySQL 호스트 |
 | `DB_USERNAME` | (운영) MySQL 계정 |
 | `DB_PASSWORD` | (운영) MySQL 비밀번호 |

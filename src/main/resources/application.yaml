@@ -39,3 +39,8 @@ smartfarm:
     discord-webhook-url: ${DISCORD_WEBHOOK_URL:}
     # 같은 기기/같은 종류 알림 재발송 금지 대기 시간 (초). 기본 2분
     cooldown-seconds: 120
+
+  encryption:
+    # DB 저장 시 apiKey·discordWebhookUrl 암호화에 사용하는 비밀 키 (AES-256-GCM)
+    # 운영 환경: 환경변수 ENCRYPTION_SECRET_KEY 필수 설정
+    secret-key: ${ENCRYPTION_SECRET_KEY:smartfarm-default-dev-key-change-in-production}
