@@ -2,9 +2,11 @@ package com.smartfarm.server.sensor.controller;
 
 import com.smartfarm.server.sensor.dto.SensorRequestDto;
 import com.smartfarm.server.sensor.dto.SensorResponseDto;
+import com.smartfarm.server.device.filter.DeviceApiKeyAuthFilter;
 import com.smartfarm.server.sensor.service.SensorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +24,10 @@ public class SensorController {
     @Operation(summary = "센서 데이터 수신 및 명령 반환",
             description = "기기(PC)가 3초마다 보내는 온도/습도 데이터를 수신하고, 임계치 초과 시 쿨링팬/히터 가동 명령을 응답으로 반환합니다.")
     @PostMapping("/data")
-    public ResponseEntity<SensorResponseDto> receiveSensorData(@Valid @RequestBody SensorRequestDto requestDto) {
+    public ResponseEntity<SensorResponseDto> receiveSensorData(
+            @Valid @RequestBody SensorRequestDto requestDto,
+            HttpServletRequest request) {
+        DeviceApiKeyAuthFilter.assertAuthenticatedDevice(request, requestDto.getDeviceId());
         SensorResponseDto responseDto = sensorService.processSensorData(requestDto);
         return ResponseEntity.ok(responseDto);
     }

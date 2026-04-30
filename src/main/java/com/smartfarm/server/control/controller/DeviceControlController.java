@@ -4,9 +4,11 @@ import com.smartfarm.server.control.dto.CommandAckRequestDto;
 import com.smartfarm.server.control.dto.DeviceControlCommandRequestDto;
 import com.smartfarm.server.control.dto.DeviceControlCommandResponseDto;
 import com.smartfarm.server.control.service.DeviceControlService;
+import com.smartfarm.server.device.filter.DeviceApiKeyAuthFilter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -44,7 +46,9 @@ public class DeviceControlController {
     @GetMapping("/pending")
     public ResponseEntity<List<DeviceControlCommandResponseDto>> getPendingCommands(
             @Parameter(description = "기기 ID", example = "WINDOWS_PC_01")
-            @RequestParam String deviceId) {
+            @RequestParam String deviceId,
+            HttpServletRequest request) {
+        DeviceApiKeyAuthFilter.assertAuthenticatedDevice(request, deviceId);
         return ResponseEntity.ok(deviceControlService.getPendingCommands(deviceId));
     }
 
@@ -52,8 +56,11 @@ public class DeviceControlController {
             description = "PC 클라이언트가 명령을 수신하고 실행한 후 서버에 완료를 알립니다.")
     @PostMapping("/ack")
     public ResponseEntity<DeviceControlCommandResponseDto> acknowledgeCommand(
-            @Valid @RequestBody CommandAckRequestDto request) {
-        return ResponseEntity.ok(deviceControlService.acknowledgeCommand(request));
+            @Valid @RequestBody CommandAckRequestDto ackRequest,
+            HttpServletRequest request) {
+        return ResponseEntity.ok(deviceControlService.acknowledgeCommand(
+                ackRequest,
+                (String) request.getAttribute(DeviceApiKeyAuthFilter.AUTHENTICATED_DEVICE_ID_ATTRIBUTE)));
     }
 
     @Operation(summary = "기기 현재 상태 조회",

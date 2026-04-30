@@ -23,11 +23,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.springframework.data.domain.PageRequest;
 
 @Slf4j
 @Service
@@ -191,9 +188,12 @@ public class DeviceControlService {
      * PC 클라이언트가 명령 실행 후 확인(ACK)을 보냅니다.
      */
     @Transactional
-    public DeviceControlCommandResponseDto acknowledgeCommand(CommandAckRequestDto request) {
+    public DeviceControlCommandResponseDto acknowledgeCommand(CommandAckRequestDto request, String authenticatedDeviceId) {
         DeviceControlCommand command = commandRepository.findById(request.commandId())
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMAND_NOT_FOUND));
+        if (authenticatedDeviceId == null || !command.getDeviceId().equals(authenticatedDeviceId)) {
+            throw new CustomException(ErrorCode.DEVICE_ACCESS_DENIED);
+        }
         command.acknowledge();
         DeviceControlCommandResponseDto response = DeviceControlCommandResponseDto.from(command);
         // ACK 완료 상태를 대시보드에 실시간 푸시
@@ -226,33 +226,18 @@ public class DeviceControlService {
      */
     @Transactional(readOnly = true)
     public Map<String, Boolean> getDeviceState(String deviceId) {
-        List<String> allTypes = List.of(
-                "COOLING_FAN_ON", "COOLING_FAN_OFF",
-                "HEATER_ON", "HEATER_OFF",
-                "HUMIDIFIER_ON", "HUMIDIFIER_OFF"
-        );
-        // 기기 유형 3종 × ON/OFF 2종 = 최대 6건으로 상태 판단에 충분
-        List<DeviceControlCommand> commands = commandRepository
-                .findAllAcknowledgedByDeviceIdAndTypes(deviceId, CommandStatus.ACKNOWLEDGED, allTypes, PageRequest.of(0, 6));
-
-        boolean coolingFanOn = commands.stream()
-                .filter(c -> c.getCommandType().startsWith("COOLING_FAN"))
-                .map(c -> "COOLING_FAN_ON".equals(c.getCommandType()))
-                .findFirst()
-                .orElse(false);
-
-        boolean heaterOn = commands.stream()
-                .filter(c -> c.getCommandType().startsWith("HEATER"))
-                .map(c -> "HEATER_ON".equals(c.getCommandType()))
-                .findFirst()
-                .orElse(false);
-
-        boolean humidifierOn = commands.stream()
-                .filter(c -> c.getCommandType().startsWith("HUMIDIFIER"))
-                .map(c -> "HUMIDIFIER_ON".equals(c.getCommandType()))
-                .findFirst()
-                .orElse(false);
+        boolean coolingFanOn = isLatestCommandOn(deviceId, List.of("COOLING_FAN_ON", "COOLING_FAN_OFF"), "COOLING_FAN_ON");
+        boolean heaterOn = isLatestCommandOn(deviceId, List.of("HEATER_ON", "HEATER_OFF"), "HEATER_ON");
+        boolean humidifierOn = isLatestCommandOn(deviceId, List.of("HUMIDIFIER_ON", "HUMIDIFIER_OFF"), "HUMIDIFIER_ON");
 
         return Map.of("coolingFanOn", coolingFanOn, "heaterOn", heaterOn, "humidifierOn", humidifierOn);
+    }
+
+    private boolean isLatestCommandOn(String deviceId, List<String> commandTypes, String onCommandType) {
+        return commandRepository
+                .findTopByDeviceIdAndCommandTypeInAndStatusOrderByCreatedAtDesc(
+                        deviceId, commandTypes, CommandStatus.ACKNOWLEDGED)
+                .map(command -> onCommandType.equals(command.getCommandType()))
+                .orElse(false);
     }
 }
