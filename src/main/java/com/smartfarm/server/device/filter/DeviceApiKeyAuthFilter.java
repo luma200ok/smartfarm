@@ -1,6 +1,7 @@
 package com.smartfarm.server.device.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smartfarm.server.common.exception.CustomException;
 import com.smartfarm.server.device.dto.DeviceConfigView;
 import com.smartfarm.server.common.exception.ErrorCode;
 import com.smartfarm.server.audit.service.AuditLogService;
@@ -37,6 +38,8 @@ public class DeviceApiKeyAuthFilter extends OncePerRequestFilter {
 
     public static final String HEADER_DEVICE_ID = "X-Device-Id";
     public static final String HEADER_API_KEY   = "X-Api-Key";
+    public static final String AUTHENTICATED_DEVICE_ID_ATTRIBUTE =
+            DeviceApiKeyAuthFilter.class.getName() + ".AUTHENTICATED_DEVICE_ID";
 
     /** API 키 인증이 필요한 PC 클라이언트 전용 경로 */
     private static final List<String> PROTECTED_PREFIXES = List.of(
@@ -103,7 +106,15 @@ public class DeviceApiKeyAuthFilter extends OncePerRequestFilter {
         }
 
         log.debug(">>> [API Key Auth] 인증 성공 — deviceId={}, path={}", deviceId, path);
+        request.setAttribute(AUTHENTICATED_DEVICE_ID_ATTRIBUTE, deviceId);
         filterChain.doFilter(request, response);
+    }
+
+    public static void assertAuthenticatedDevice(HttpServletRequest request, String requestedDeviceId) {
+        Object authenticated = request.getAttribute(AUTHENTICATED_DEVICE_ID_ATTRIBUTE);
+        if (!(authenticated instanceof String authenticatedDeviceId) || !authenticatedDeviceId.equals(requestedDeviceId)) {
+            throw new CustomException(ErrorCode.DEVICE_ACCESS_DENIED);
+        }
     }
 
     private boolean isProtectedPath(String path) {

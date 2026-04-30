@@ -1,25 +1,38 @@
 package com.smartfarm.server.config;
 
 import com.smartfarm.server.audit.entity.AuditLog;
+import com.smartfarm.server.control.entity.CommandStatus;
+import com.smartfarm.server.control.entity.DeviceControlCommand;
+import com.smartfarm.server.control.repository.DeviceControlCommandRepository;
 import com.smartfarm.server.device.entity.DeviceConfig;
 import com.smartfarm.server.audit.repository.AuditLogRepository;
 import com.smartfarm.server.device.repository.DeviceConfigRepository;
 import com.smartfarm.server.device.filter.DeviceApiKeyAuthFilter;
+import com.smartfarm.server.sensor.dto.SensorRequestDto;
+import com.smartfarm.server.sensor.dto.SensorResponseDto;
+import com.smartfarm.server.sensor.service.SensorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -43,9 +56,16 @@ class DeviceApiKeyAuthFilterTest {
     private AuditLogRepository auditLogRepository;
 
     @Autowired
+    private DeviceControlCommandRepository commandRepository;
+
+    @Autowired
     private CacheManager cacheManager;
 
+    @MockBean
+    private SensorService sensorService;
+
     private static final String TEST_DEVICE_ID = "TEST-PC-001";
+    private static final String OTHER_DEVICE_ID = "OTHER-PC-001";
     private String testApiKey;
     private static final String PROTECTED_ENDPOINT = "/api/sensor/data";
 
@@ -58,6 +78,7 @@ class DeviceApiKeyAuthFilterTest {
         }
 
         auditLogRepository.deleteAll();
+        commandRepository.deleteAll();
         deviceConfigRepository.deleteAll();
 
         // 테스트용 기기 설정 등록
@@ -67,11 +88,20 @@ class DeviceApiKeyAuthFilterTest {
                 .build();
 
         deviceConfigRepository.save(config);
+        deviceConfigRepository.save(DeviceConfig.builder()
+                .deviceId(OTHER_DEVICE_ID)
+                .build());
 
         // 저장된 설정에서 생성된 API 키를 조회하여 테스트에 사용
         DeviceConfig retrievedConfig = deviceConfigRepository.findByDeviceId(TEST_DEVICE_ID)
                 .orElseThrow(() -> new RuntimeException("Device config not found after save"));
         testApiKey = retrievedConfig.getApiKey();
+
+        when(sensorService.processSensorData(any(SensorRequestDto.class)))
+                .thenReturn(SensorResponseDto.builder()
+                        .status("SUCCESS")
+                        .message("Data processed successfully")
+                        .build());
     }
 
     @Test
@@ -202,6 +232,56 @@ class DeviceApiKeyAuthFilterTest {
         // Then: AUTH_FAILURE 감사 로그가 없어야 함
         List<AuditLog> logs = auditLogRepository.findByDeviceIdOrderByCreatedAtDesc(TEST_DEVICE_ID, PageRequest.of(0, 10)).getContent();
         assertThat(logs).isEmpty();
+    }
+
+    @Test
+    void rejectsSensorDataWhenHeaderDeviceDoesNotMatchBodyDevice() throws Exception {
+        mockMvc.perform(post(PROTECTED_ENDPOINT)
+                .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, TEST_DEVICE_ID)
+                .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, testApiKey)
+                .contentType("application/json")
+                .content("{\"deviceId\":\"" + OTHER_DEVICE_ID + "\",\"cpu_temperature\":25.5,\"humidity\":45.3,\"timestamp\":" + System.currentTimeMillis() + "}"))
+                .andExpect(status().isForbidden());
+
+        verify(sensorService, never()).processSensorData(any(SensorRequestDto.class));
+    }
+
+    @Test
+    void rejectsPendingCommandLookupForDifferentDevice() throws Exception {
+        mockMvc.perform(get("/api/device-control/pending")
+                .param("deviceId", OTHER_DEVICE_ID)
+                .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, TEST_DEVICE_ID)
+                .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, testApiKey))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectsDeviceCommandStreamForDifferentDevice() throws Exception {
+        mockMvc.perform(get("/api/sse/device-command-stream")
+                .param("deviceId", OTHER_DEVICE_ID)
+                .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, TEST_DEVICE_ID)
+                .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, testApiKey))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectsAckForCommandOwnedByDifferentDevice() throws Exception {
+        DeviceControlCommand command = commandRepository.save(DeviceControlCommand.builder()
+                .deviceId(OTHER_DEVICE_ID)
+                .commandType("COOLING_FAN_ON")
+                .status(CommandStatus.PENDING)
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        mockMvc.perform(post("/api/device-control/ack")
+                .header(DeviceApiKeyAuthFilter.HEADER_DEVICE_ID, TEST_DEVICE_ID)
+                .header(DeviceApiKeyAuthFilter.HEADER_API_KEY, testApiKey)
+                .contentType("application/json")
+                .content("{\"commandId\":" + command.getId() + "}"))
+                .andExpect(status().isForbidden());
+
+        DeviceControlCommand reloaded = commandRepository.findById(command.getId()).orElseThrow();
+        assertThat(reloaded.getStatus()).isEqualTo(CommandStatus.PENDING);
     }
 
     @Test

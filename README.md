@@ -4,7 +4,7 @@
 >
 > 단순한 데이터 저장을 넘어, Redis와 MySQL의 이중 저장소 전략으로 고속 수집과 영구 보관을 동시에 달성했습니다.
 >
-> Server-Sent Events(SSE) 기반 실시간 푸시, 1분 단위 배치 집계, 임계값 초과 시 쿨링팬·히터·가습기 자동 제어, Discord 알림까지 실제 운영 환경을 고려한 아키텍처를 구축했습니다.
+> Server-Sent Events(SSE) 기반 실시간 푸시, 1분 단위 배치 이관, 임계값 초과 시 쿨링팬·히터·가습기 자동 제어, Discord 알림까지 실제 운영 환경을 고려한 아키텍처를 구축했습니다.
 
 
 🔗 **실제 서비스 접속해 보기:** [https://smartfarm.rkqkdrnportfolio.shop/](https://smartfarm.rkqkdrnportfolio.shop/)
@@ -24,6 +24,7 @@
 - [주요 기술적 의사결정 및 트러블슈팅](#-주요-기술적-의사결정-및-트러블-슈팅)
 - [API 엔드포인트](#-api-엔드포인트)
 - [실행 방법](#-실행-방법)
+- [테스트](#-테스트)
 - [센서 에이전트 (Python)](#-센서-에이전트-python)
 - [예외 처리](#-예외-처리)
 
@@ -32,7 +33,7 @@
 ## 🛠️ Tech Stack & Architecture
 
 ### Tech Stack
-* **Backend:** Java 21, Spring Boot 3.5, Spring Data JPA, Querydsl, Spring Security 6
+* **Backend:** Java 21, Spring Boot 3.5.11, Spring Data JPA, Querydsl, Spring Security 6
 * **Database & Cache:** MySQL 8, Redis, Flyway (DB 마이그레이션)
 * **Realtime:** Server-Sent Events (SSE) — 대시보드 실시간 푸시 + PC 클라이언트 명령 스트림
 * **Sensor Agent:** Python 3 (가상 온도·습도 데이터 생성 및 전송, systemd 서비스 운용)
@@ -48,7 +49,7 @@
 
 
 * **Redis:** 3초마다 쏟아지는 센서 데이터를 메모리에 임시 버퍼링하여 DB 쓰기 부하 차단
-* **MySQL:** 1분 평균값만 영구 저장하여 스토리지 효율 극대화
+* **MySQL:** Redis에 남은 기기별 최신 스냅샷을 1분마다 영구 저장하여 쓰기 부하 절감
 * **Spring Cache (Redis 백엔드):** 기기별 임계값 설정을 캐시하여 매 요청마다 발생하는 DB 조회 제거
 * **SSE (이중 채널):** 브라우저 대시보드용 실시간 센서 스트림 + PC 클라이언트용 제어 명령 스트림을 분리하여 운용
 * **자동 제어:** 온도 상한 초과 시 쿨링팬 ON, 중간값 이하 도달 시 자동 OFF / 온도 하한 미달 시 히터 ON, 중간값 이상 도달 시 자동 OFF / 습도 하한 이하 시 가습기 ON (건조), 중간값 이상 도달 시 자동 OFF
@@ -59,12 +60,12 @@
 ## 💡 주요 기술적 의사결정 및 트러블 슈팅
 
 ### 1. ⚡ Redis + MySQL 이중 저장소 전략 (Write-Buffer + Batch Flush)
-> **의사결정:** 3초마다 발생하는 고빈도 쓰기 요청을 MySQL이 직접 받지 않도록 Redis를 중간 버퍼로 사용하고, 1분 단위 배치로 집계 후 저장
+> **의사결정:** 3초마다 발생하는 고빈도 쓰기 요청을 MySQL이 직접 받지 않도록 Redis를 중간 버퍼로 사용하고, 1분 단위 배치로 최신 스냅샷을 이관
 
 * **🚨 Issue:** 기기에서 3초마다 온도·습도 데이터를 전송할 경우, 기기 수가 늘어날수록 MySQL에 초당 수십 건의 INSERT가 발생해 DB 병목이 불가피
 * **💡 Resolution:**
   * **Redis 임시 버퍼:** 수신 즉시 Redis에 저장 (기기당 최신 1건만 유지, 60초 TTL)
-  * **Batch Flush:** `@Scheduled`로 1분마다 Redis 전체 데이터를 읽어 deviceId별 평균값을 계산한 뒤 MySQL에 1행만 삽입
+  * **Batch Flush:** `@Scheduled`로 1분마다 등록된 deviceId 목록을 기준으로 Redis의 기기별 최신값을 조회해 MySQL에 1행씩 삽입
   * **메모리 해제:** 배치 완료 후 Redis 데이터 즉시 삭제
 * **📈 성과:** DB INSERT 횟수를 기기당 분당 20건 → 1건으로 절감 (기기 10대 기준 약 95% 감소)
 
@@ -165,7 +166,7 @@
 
 * **🚨 Issue:** JPA 메서드 네이밍만으로 집계(max, min, avg)와 날짜 범위 필터를 조합한 동적 쿼리를 표현하기 어려움
 * **💡 Resolution:**
-  * **Querydsl Projections:** `QSensorStatisticsDto`로 집계 결과를 DTO에 직접 매핑, 엔티티 불필요 조회 제거
+  * **Querydsl Projections:** `Projections.constructor(...)`로 집계 결과를 DTO에 직접 매핑, 엔티티 불필요 조회 제거
   * **BooleanExpression:** 날짜 범위, deviceId 조건을 타입 안전하게 조합
   * **Repository-Custom-Impl 3단 구조:** JPA 인터페이스와 Querydsl 구현체를 분리하여 유지보수성 확보
 * **📈 성과:** 집계 로직 DB 위임으로 애플리케이션 메모리 부하 절감, 컴파일 타임 쿼리 검증으로 런타임 오류 사전 차단
@@ -191,6 +192,7 @@
 | GET | `/api/device-config/{deviceId}` | ✅ | 특정 기기 설정 조회 |
 | POST | `/api/device-config` | ✅ | 기기 설정 저장/수정 (임계값 포함) |
 | DELETE | `/api/device-config/{deviceId}` | ✅ | 기기 삭제 |
+| POST | `/api/device-config/{deviceId}/regenerate-key` | ✅ ADMIN | API 키 재발급 |
 
 ### 기기 제어
 | Method | URI | 인증 | 설명 |
@@ -206,8 +208,23 @@
 |--------|-----|------|------|
 | GET | `/api/dashboard/history` | ✅ | 센서 이력 페이징 조회 |
 | GET | `/api/dashboard/statistics/today` | ✅ | 오늘 통계 조회 |
-| GET | `/api/dashboard/export/csv` | ✅ | CSV 내보내기 |
-| GET | `/api/dashboard/export/excel` | ✅ | Excel 내보내기 |
+| GET | `/api/dashboard/statistics/trend` | ✅ | 일별 트렌드 통계 조회 |
+| GET | `/api/dashboard/statistics/alert-count` | ✅ | 알림 발생 횟수 조회 |
+| GET | `/api/dashboard/statistics/comparison` | ✅ | 전체 기기 비교 통계 조회 |
+
+### 데이터 내보내기
+| Method | URI | 인증 | 설명 |
+|--------|-----|------|------|
+| GET | `/api/export/csv` | ✅ ADMIN | CSV 내보내기 |
+| GET | `/api/export/excel` | ✅ ADMIN | Excel 내보내기 |
+
+### 사용자 관리
+| Method | URI | 인증 | 설명 |
+|--------|-----|------|------|
+| GET | `/api/users` | ✅ ADMIN | 전체 사용자 목록 조회 |
+| POST | `/api/users` | ✅ ADMIN | 사용자 생성 |
+| PUT | `/api/users/{id}` | ✅ ADMIN | 사용자 권한/연결 기기 수정 |
+| DELETE | `/api/users/{id}` | ✅ ADMIN | 사용자 삭제 |
 
 ### 실시간 (SSE)
 | Method | URI | 인증 | 설명 |
@@ -232,7 +249,9 @@
 | `DB_HOST` | (운영) MySQL 호스트 |
 | `DB_USERNAME` | (운영) MySQL 계정 |
 | `DB_PASSWORD` | (운영) MySQL 비밀번호 |
+| `MYSQL_PASSWORD` | (로컬) MySQL root 비밀번호 |
 | `REDIS_HOST` | (운영) Redis 호스트 |
+| `REDIS_PORT` | (운영) Redis 포트 (기본값 6379) |
 
 ### 실행
 ```bash
@@ -251,6 +270,23 @@
 
 <br>
 
+## ✅ 테스트
+
+```bash
+./gradlew test
+```
+
+테스트 프로필은 H2 인메모리 DB와 메모리 기반 Spring Cache를 사용합니다. 따라서 단위/통합 테스트 실행 시 로컬 Redis가 없어도 됩니다.
+
+현재 주요 검증 범위는 다음과 같습니다.
+
+* **API 키 인증:** `X-Device-Id`로 인증된 기기와 요청 본문·쿼리·ACK 대상 기기가 다르면 거부
+* **대시보드 SSE 권한:** 일반 사용자는 연결된 기기만 실시간 구독 가능
+* **제어 상태 복원:** 쿨링팬·히터·가습기별 최신 ACK 명령을 기준으로 ON/OFF 상태 계산
+* **감사 로그:** API 키 생성·갱신, 인증 실패, 권한 거부 등 보안 이벤트 기록
+
+<br>
+
 ## 🐍 센서 에이전트 (Python)
 
 `src/scripts/sensor_agent.py` — 가상 온도·습도 데이터를 생성하여 3초마다 서버에 전송하고, SSE로 제어 명령을 수신·실행하는 PC 클라이언트입니다.
@@ -259,14 +295,14 @@
 * **일교차 패턴:** 06:00 최저 → 14:30 최고 → 다음 06:00 최저 (sin/cos 곡선)
 * **기기 피드백:** 서버에서 제어 명령 수신 시 센서 값에 즉시 반영
   * 쿨링팬 ON → 매 사이클마다 온도 −0.2°C 보정 (최저 18°C 하한)
-  * 히터 ON → 매 사이클마다 온도 +0.2°C 보정 (최고 40°C 상한)
+  * 히터 ON → 매 사이클마다 온도 +0.2°C 보정 (최고 28°C 상한)
   * 가습기 ON → 매 사이클마다 습도 +0.4% 보정 (최고 90% 상한)
   * 각 기기 OFF → 보정 없이 일교차 패턴으로 자연 복귀
 * **스레드 안전성:** SSE 수신 스레드와 센서 전송 스레드 간 `threading.Lock`으로 기기 상태 공유
 
 ### 사전 요구사항
 ```bash
-pip install requests sseclient-py python-dotenv
+pip install -r src/scripts/requirements.txt
 ```
 
 ### 환경변수 (`.env`)
@@ -277,7 +313,7 @@ API_KEY=              # 최초 실행 시 자동 발급 후 저장
 
 ### 실행
 ```bash
-python sensor_agent.py
+python src/scripts/sensor_agent.py
 ```
 
 최초 실행 시 서버에 기기를 자동 등록하고 API 키를 `.env`에 저장합니다.
@@ -302,9 +338,15 @@ journalctl -u smartfarm-sensor-agent -f
 |------|------|------|
 | E001 | 400 | 입력값 오류 |
 | E002 | 400 | 기기 없음 |
+| E003 | 400 | 존재하지 않는 명령 |
+| E004 | 400 | 유효하지 않은 명령 종류 |
+| E005 | 409 | 이미 등록된 기기 |
+| E006 | 429 | 요청 횟수 제한 초과 |
+| A001 | 401 | 유효하지 않은 API 키 |
+| A002 | 403 | 기기 접근 권한 없음 |
 | S001 | 500 | 서버 내부 오류 |
 | S002 | 500 | 데이터베이스 오류 |
 
 ---
 
-최근 업데이트 2026.04.08 — v1.1.0
+최근 업데이트 2026.04.30 — v1.1.0
