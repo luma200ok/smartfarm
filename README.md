@@ -7,9 +7,9 @@
 > Server-Sent Events(SSE) 기반 실시간 푸시, 1분 단위 배치 이관, 임계값 초과 시 쿨링팬·히터·가습기 자동 제어, Discord 알림까지 실제 운영 환경을 고려한 아키텍처를 구축했습니다.
 
 
-🔗 **실제 서비스 접속해 보기:** [https://smartfarm.rkqkdrnportfolio.shop/](https://smartfarm.rkqkdrnportfolio.shop/)
+🔗 **실제 서비스 접속해 보기:** [https://smartfarm.luma200ok.com/](https://smartfarm.luma200ok.com/)
 
-🔗 **Swagger API**: [https://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html](https://smartfarm.rkqkdrnportfolio.shop/swagger-ui/index.html)
+🔗 **Swagger API**: [https://smartfarm.luma200ok.com/swagger-ui/index.html](https://smartfarm.luma200ok.com/swagger-ui/index.html)
 
 🔗 **Discord 서버 초대 링크**:[https://discord.gg/a9VhVFbqnR](https://discord.gg/a9VhVFbqnR)
 

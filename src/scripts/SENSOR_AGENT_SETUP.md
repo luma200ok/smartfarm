@@ -54,13 +54,13 @@ python3 senesor_agent.py
 
 정상 작동 시 출력:
 ```
---- 스마트팜 센서 에이전트 시작 (deviceId: EC2_PROD_01, server: http://smartfarm.rkqkdrnportfolio.shop) ---
+--- 스마트팜 센서 에이전트 시작 (deviceId: EC2_PROD_01, server: http://smartfarm.luma200ok.com) ---
 [INIT] API 키 없음 — 서버에 기기 등록을 요청합니다. (deviceId: EC2_PROD_01)
 [INIT] 기기 등록 완료! API 키를 .env 에 저장했습니다.
   └─ deviceId  : EC2_PROD_01
   └─ apiKey    : <발급받은 API 키>
   └─ .env 경로 : /home/ec2-user/smartfarm-sensor-agent/.env
-[SSE] 명령 스트림 연결 시도 → http://smartfarm.rkqkdrnportfolio.shop/api/sse/device-command-stream?deviceId=EC2_PROD_01
+[SSE] 명령 스트림 연결 시도 → http://smartfarm.luma200ok.com/api/sse/device-command-stream?deviceId=EC2_PROD_01
 [SSE] 명령 스트림 연결 성공
 [SSE] 서버 핸드셰이크 완료
 [16:30:45] ✅ 전송 완료 (CPU: 12.5%, 메모리: 45.2%)
@@ -110,7 +110,7 @@ sudo journalctl -u smartfarm-sensor-agent -n 50
 ```
 
 **해결:**
-1. Smartfarm 대시보드 접속: `http://smartfarm.rkqkdrnportfolio.shop/dashboard`
+1. Smartfarm 대시보드 접속: `http://smartfarm.luma200ok.com/dashboard`
 2. 기기 목록에서 해당 DEVICE_ID 찾기
 3. API 키 재발급 및 복사
 4. `.env` 파일의 `API_KEY` 값 업데이트
@@ -126,8 +126,8 @@ sudo journalctl -u smartfarm-sensor-agent -n 50
 - EC2 보안 그룹: 아웃바운드 HTTP(80) 허용 확인
 - DNS 이름 해석 확인:
   ```bash
-  nslookup smartfarm.rkqkdrnportfolio.shop
-  curl -v http://smartfarm.rkqkdrnportfolio.shop/api/health
+  nslookup smartfarm.luma200ok.com
+  curl -v http://smartfarm.luma200ok.com/api/health
   ```
 
 ### 6.3 데이터 전송 안 됨
@@ -138,7 +138,7 @@ sudo journalctl -u smartfarm-sensor-agent -n 50
 ## 7. 모니터링
 
 Smartfarm 대시보드에서 센서 데이터 확인:
-- URL: `http://smartfarm.rkqkdrnportfolio.shop/dashboard`
+- URL: `http://smartfarm.luma200ok.com/dashboard`
 - 로그인 필요
 - 센서 데이터 및 실시간 그래프 표시
 
