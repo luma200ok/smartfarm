@@ -37,3 +37,8 @@ out/
 .vscode/
 .claude/worktrees
 .claude/projects
+### secrets / local tool config
+.env
+*.env
+!*.env.example
+.claude/
